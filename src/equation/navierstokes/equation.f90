@@ -542,7 +542,7 @@ END SUBROUTINE InitEquationAfterAdapt
 SUBROUTINE FillIni(IniExactFunc_in,U_in)
 ! MODULES
 USE MOD_PreProc
-USE MOD_Mesh_Vars,ONLY:Elem_xGP,nElems
+USE MOD_Mesh_Vars,ONLY:Elem_xGP,nElems,Elem_centers
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT/OUTPUT VARIABLES
@@ -560,7 +560,7 @@ DO iElem=1,nElems
   DO k=0,PP_N
     DO j=0,PP_N
       DO i=0,PP_N
-        CALL ExactFunc(IniExactFunc_in,0.,Elem_xGP(1:3,i,j,k,iElem),U_in(1:PP_nVar,i,j,k,iElem))
+        CALL ExactFunc(IniExactFunc_in,0.,Elem_xGP(1:3,i,j,k,iElem),U_in(1:PP_nVar,i,j,k,iElem),Elem_centers(1:3,nElems))
       END DO ! i
     END DO ! j
   END DO !k
@@ -572,7 +572,7 @@ END SUBROUTINE FillIni
 !> Collection of analytical function, can represent exact solutions. input is x and t and the exactfunction integer.
 !> The state in conservative variables is returned.
 !==================================================================================================================================
-SUBROUTINE ExactFunc(ExactFunction,tIn,x,resu) 
+SUBROUTINE ExactFunc(ExactFunction,tIn,x,resu,xElem_center) 
 ! MODULES
 USE MOD_Preproc
 USE MOD_Globals,ONLY:Abort,CROSS
@@ -584,8 +584,9 @@ USE MOD_TestCase_ExactFunc,ONLY: TestcaseExactFunc
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
 REAL,INTENT(IN)                 :: tIn              !< evaluation time 
-REAL,INTENT(IN)                 :: x(3)             !< x,y,z position
+REAL,INTENT(IN)                 :: x(3)             !< x,y,z position of current node
 INTEGER,INTENT(IN)              :: ExactFunction    !< determines the exact function
+REAL,INTENT(IN),OPTIONAL       :: xElem_center(3)   !< X,Y,Z position of element center
 !----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 REAL,INTENT(OUT)                :: Resu(PP_nVar)    !< state in conservative variables
@@ -798,6 +799,17 @@ CASE(61) ! sharp shock
     Resu=Resul
   else
     Resu=Resur
+  end if
+CASE(62) ! generic shock tube
+  if(present(xElem_center)) then
+    xs = xElem_center(1) ! temporarily using xs, this is NOT the shock position
+  else
+    xs = x(1)
+  end if
+  if (xs < IniHalfwidth) then
+    Resu(:) = RefStateCons(1,:) ! left state
+  else
+    Resu(:) = RefStateCons(2,:) ! right state
   end if
 CASE(7) !TAYLOR GREEN VORTEX
   A=1. ! magnitude of speed

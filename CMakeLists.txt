@@ -547,7 +547,7 @@ IF(NOT FLUXO_BUILD_HDF5)
   UNSET(FLUXO_HDF5CC CACHE ) 
 ELSE()
   # define here the path to download from
-  SET (HDF5DOWNLOAD https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git )
+  SET (HDF5DOWNLOAD https://github.com/HDFGroup/hdf5.git )
   SET (HDF5TAG "hdf5-1_10_0-patch1" CACHE STRING "HDF5 version tag")
 
   SET(FLUXO_HDF5_DLDIR ${FLUXO_EXTERNAL_LIB_DIR}/HDF5)

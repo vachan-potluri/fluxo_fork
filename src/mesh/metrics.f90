@@ -84,7 +84,7 @@ USE MOD_Mesh_Vars,     ONLY:NGeo,NgeoRef,nElems,offsetElem,crossProductMetrics,N
 USE MOD_Mesh_Vars,     ONLY:Metrics_fTilde,Metrics_gTilde,Metrics_hTilde
 USE MOD_Mesh_Vars,     ONLY:sJ,detJac_Ref
 USE MOD_Mesh_Vars,     ONLY:Vdm_GLN_N,Vdm_N_GLN,dXGL_N
-USE MOD_Mesh_Vars,     ONLY:NodeCoords,Elem_xGP
+USE MOD_Mesh_Vars,     ONLY:NodeCoords,Elem_xGP,Elem_centers
 USE MOD_Interpolation_Vars
 USE MOD_Interpolation, ONLY:GetVandermonde,GetNodesAndWeights,GetDerivativeMatrix
 USE MOD_ChangeBasis,   ONLY:changeBasis3D
@@ -167,6 +167,14 @@ CALL GetNodesAndWeights(PP_N   , NodeTypeGL  , xiGL_N  , wIPBary=wBaryGL_N)
 
 ! Outer loop over all elements
 DO iElem=1,nElems
+  ! calculate element centers
+  !! doesn't work for curved elements
+  Elem_centers(:,iElem) = 0.125*(&
+    NodeCoords(:,0,0,0,iElem) + NodeCoords(:,0,0,NGeo,iElem) +&
+    NodeCoords(:,0,NGeo,0,iElem) + NodeCoords(:,0,NGeo,NGeo,iElem) +&
+    NodeCoords(:,NGeo,0,0,iElem) + NodeCoords(:,NGeo,0,NGeo,iElem) +&
+    NodeCoords(:,NGeo,NGeo,0,iElem) + NodeCoords(:,NGeo,NGeo,NGeo,iElem)&
+  )
   IF (ForAMR) THEN
     CALL ChangeBasis3D(3,PP_N,PP_N,Vdm_N_GLN,Elem_xGP(:,:,:,:,iElem),XGL_N )
     CALL ChangeBasis3D(3,PP_N,NGeo,Vdm_GLN_GLNGeo ,XGL_N   ,XGL_Ngeo)

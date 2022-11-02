@@ -367,8 +367,6 @@ call CalcBlendingCoefficient(U)
 
 #if PP_DiscType==2
 CALL VolInt_adv_SplitForm(Ut)
-#elif SHOCK_NFVSE
-CALL VolInt_adv(Ut)
 #endif /*PP_DiscType==2*/
 
 

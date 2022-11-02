@@ -560,7 +560,7 @@ DO iElem=1,nElems
   DO k=0,PP_N
     DO j=0,PP_N
       DO i=0,PP_N
-        CALL ExactFunc(IniExactFunc_in,0.,Elem_xGP(1:3,i,j,k,iElem),U_in(1:PP_nVar,i,j,k,iElem),Elem_centers(1:3,nElems))
+        CALL ExactFunc(IniExactFunc_in,0.,Elem_xGP(1:3,i,j,k,iElem),U_in(1:PP_nVar,i,j,k,iElem),Elem_centers(1:3,iElem))
       END DO ! i
     END DO ! j
   END DO !k
@@ -586,7 +586,7 @@ IMPLICIT NONE
 REAL,INTENT(IN)                 :: tIn              !< evaluation time 
 REAL,INTENT(IN)                 :: x(3)             !< x,y,z position of current node
 INTEGER,INTENT(IN)              :: ExactFunction    !< determines the exact function
-REAL,INTENT(IN),OPTIONAL       :: xElem_center(3)   !< X,Y,Z position of element center
+REAL,INTENT(IN),OPTIONAL        :: xElem_center(3)  !< X,Y,Z position of element center
 !----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 REAL,INTENT(OUT)                :: Resu(PP_nVar)    !< state in conservative variables

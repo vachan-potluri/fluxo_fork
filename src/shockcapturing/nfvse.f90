@@ -1647,7 +1647,12 @@ contains
     end where
 #if FLUXO_HYPERSONIC
     do eID=1,nElems
-      parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), t]
+      if(present(t)) then
+        parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), t]
+      else
+        ! generally viscous blending region is not time dependent, so give some dummy value
+        parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), 0.0]
+      end if
       CALL viscous_blending_region_parser%evaluate(parser_vals, parser_result)
       if(viscous_blending_region_parser%error()) then
         call viscous_blending_region_parser%print_errors(output_unit)

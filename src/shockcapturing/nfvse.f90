@@ -99,10 +99,10 @@ contains
     call prms%CreateIntOption(       "PositMaxIter",  " Maximum number of iterations for positivity limiter", "10")
 #endif /*NFVSE_CORR*/
 #if FLUXO_HYPERSONIC
-    call prms%CreateStringOption("Viscous blending region", "A function evaulated at every cell center."//&
+    call prms%CreateStringOption("Viscous_blending_region", "A function evaulated at every cell center."//&
                                  " If this evaluates to a positive quantity, viscous residual is scaled."&
                                  ,"-1")
-    call prms%CreateStringOption("Wall blender limit", "A function of time for the wall blender limit."&
+    call prms%CreateStringOption("Wall_blender_limit", "A function of time for the wall blender limit."&
                                  ,"0")
 #endif
    
@@ -117,6 +117,7 @@ contains
 #if FLUXO_HYPERSONIC
     use MOD_ReadInTools        , only: GETSTR
     use iso_fortran_env        , only: output_unit
+    use MOD_StringTools        , only: StripSpaces
 #endif
     USE MOD_Mesh_Vars          , only: nElems,nSides,firstSlaveSide,LastSlaveSide, MeshIsNonConforming, firstMortarInnerSide
     use MOD_Interpolation_Vars , only: wGP, xGP
@@ -133,7 +134,7 @@ contains
     real    :: sumWm1
     logical :: MeshNonConforming
 #if FLUXO_HYPERSONIC
-    character(len=1000) :: temp
+    character(len=255) :: temp
     character(len=*),dimension(4),parameter :: parser_vars  = [ 'x', 'y', 'z', 't' ]
 #endif
     !--------------------------------------------------------------------------------------------------------------------------------
@@ -164,13 +165,13 @@ contains
     TimeRelFactor    = GETREAL   ('TimeRelFactor'  ,'0.0')
     ! ReconsBoundaries is read afterwards only if needed
 #if FLUXO_HYPERSONIC
-    temp = GETSTR("Wall blender limit", "0")
+    temp = GETSTR("Wall_blender_limit", "0")
     CALL wall_blender_limit_parser%parse(temp, parser_vars, .FALSE.)
     if (wall_blender_limit_parser%error()) then
         call wall_blender_limit_parser%print_errors(output_unit)
         error stop
     end if
-    temp = GETSTR("Viscous blending region", "-1")
+    temp = GETSTR("Viscous_blending_region", "-1")
     CALL viscous_blending_region_parser%parse(temp, parser_vars, .FALSE.)
     if (viscous_blending_region_parser%error()) then
         call viscous_blending_region_parser%print_errors(output_unit)

@@ -16,11 +16,17 @@
 !> summary: Contains global variables for the NFVSE routines
 !===================================================================================================================================
 module MOD_NFVSE_Vars
+#if FLUXO_HYPERSONIC
+  use function_parser
+#endif
   implicit none
   
   private
   public :: ComputeAlpha, alpha_max, alpha_min, ShockBlendCoef, sharpness, threshold, ModalThreshold
   public :: SubCellMetrics, sWGP, alpha, alpha_Master, alpha_Slave
+#if FLUXO_HYPERSONIC
+  public :: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
+#endif
   public :: SubCellMetrics_t, InnerFaceMetrics_t
 #if MPI
   public :: MPIRequest_alpha
@@ -70,6 +76,11 @@ module MOD_NFVSE_Vars
   real, target          , allocatable :: alpha(:)         !< Element-wise blending function (modified every time Ut is computed)
   real                  , allocatable :: alpha_Master(:)  !< Blending function on master sides
   real                  , allocatable :: alpha_Slave(:)   !< Blending function on slave sides
+#if FLUXO_HYPERSONIC
+  real, allocatable                   :: alpha_vis(:)     !< Blending function for viscous residual (it is only scaled though)
+  ! function parsers for wall blender limit and viscous blending region
+  type (fparser)                      :: wall_blender_limit_parser, viscous_blending_region_parser
+#endif
   real                                :: threshold        !< Threshold for the shock indicator
   real, parameter                     :: sharpness = log((1.0-1.e-4)/1.e-4) !< Heuristically obtained sharpness for the shock indicator
   real                                :: alpha_max        !< Maximum blending factor

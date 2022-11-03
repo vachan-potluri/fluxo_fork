@@ -101,7 +101,7 @@ contains
 #if FLUXO_HYPERSONIC
     call prms%CreateStringOption("Viscous blending region", "A function evaulated at every cell center."//&
                                  " If this evaluates to a positive quantity, viscous residual is scaled."&
-                                 ,"1")
+                                 ,"-1")
     call prms%CreateStringOption("Wall blender limit", "A function of time for the wall blender limit."&
                                  ,"0")
 #endif
@@ -114,6 +114,10 @@ contains
     USE MOD_Globals
     use MOD_NFVSE_Vars
     use MOD_ReadInTools        , only: GETINT, GETREAL, GETLOGICAL
+#if FLUXO_HYPERSONIC
+    use MOD_ReadInTools        , only: GETSTR
+    use iso_fortran_env        , only: output_unit
+#endif
     USE MOD_Mesh_Vars          , only: nElems,nSides,firstSlaveSide,LastSlaveSide, MeshIsNonConforming, firstMortarInnerSide
     use MOD_Interpolation_Vars , only: wGP, xGP
     use MOD_Equation_Vars      , only: RiemannVolFluxAndDissipMatrices
@@ -128,6 +132,10 @@ contains
     integer :: i
     real    :: sumWm1
     logical :: MeshNonConforming
+#if FLUXO_HYPERSONIC
+    character(len=1000) :: temp
+    character(len=*),dimension(4),parameter :: parser_vars  = [ 'x', 'y', 'z', 't' ]
+#endif
     !--------------------------------------------------------------------------------------------------------------------------------
     
     ! Safety deallocations
@@ -152,6 +160,20 @@ contains
     SpacePropSweeps  = GETINT    ('SpacePropSweeps','1')
     TimeRelFactor    = GETREAL   ('TimeRelFactor'  ,'0.0')
     ! ReconsBoundaries is read afterwards only if needed
+#if FLUXO_HYPERSONIC
+    temp = GETSTR("Wall blender limit", "0")
+    CALL wall_blender_limit_parser%parse(temp, parser_vars, .FALSE.)
+    if (wall_blender_limit_parser%error()) then
+        call wall_blender_limit_parser%print_errors(output_unit)
+        error stop
+    end if
+    temp = GETSTR("Viscous blending region", "-1")
+    CALL viscous_blending_region_parser%parse(temp, parser_vars, .FALSE.)
+    if (viscous_blending_region_parser%error()) then
+        call viscous_blending_region_parser%print_errors(output_unit)
+        error stop
+    end if
+#endif
 #if NFVSE_CORR
     PositCorrFactor  = GETREAL   ('PositCorrFactor','0.1')
     PositMaxIter     = GETINT    ('PositMaxIter','10')
@@ -1541,11 +1563,16 @@ contains
 !> -> This routine computes the sensor, makes the correction (with alpha_min and alpha_max), and sends the information with MPI
 !> -> No propagation is done yet (MPI informationmust be received).
 !===================================================================================================================================
-  subroutine CalcBlendingCoefficient(U)
+  subroutine CalcBlendingCoefficient(U,t)
     use MOD_PreProc
     use MOD_Mesh_Vars          , only: nElems
     use MOD_NFVSE_MPI          , only: ProlongBlendingCoeffToFaces, PropagateBlendingCoeff
     use MOD_NFVSE_Vars         , only: SpacePropSweeps, TimeRelFactor, alpha, alpha_max, alpha_min, ComputeAlpha, ShockBlendCoef, sharpness, threshold
+#if FLUXO_HYPERSONIC
+    use MOD_Mesh_Vars          , only: Elem_centers
+    use MOD_NFVSE_Vars         , only: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
+    use iso_fortran_env        , only: output_unit
+#endif
     use MOD_ShockCapturing_Vars, only: Shock_Indicator
     ! For reconstruction on boundaries
 #if MPI
@@ -1559,10 +1586,15 @@ contains
     ! Arguments
     !---------------------------------------------------------------------------------------------------------------------------------
     real,dimension(PP_nVar,0:PP_N,0:PP_N,0:PP_N,nElems), intent(in)  :: U
+    real, intent(in), optional                                       :: t ! < simulation time
     !---------------------------------------------------------------------------------------------------------------------------------
     ! Local variables
     real ::  eta(nElems)
     integer :: eID
+#if FLUXO_HYPERSONIC
+    real, dimension(4) :: parser_vals
+    real :: parser_result
+#endif
     !---------------------------------------------------------------------------------------------------------------------------------
     
 ! If we do reconstruction on boundaries, we need to send the U_master
@@ -1613,6 +1645,21 @@ contains
     elsewhere (alpha >= alpha_max)
       alpha = alpha_max
     end where
+#if FLUXO_HYPERSONIC
+    do eID=1,nElems
+      parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), t]
+      CALL viscous_blending_region_parser%evaluate(parser_vals, parser_result)
+      if(viscous_blending_region_parser%error()) then
+        call viscous_blending_region_parser%print_errors(output_unit)
+      else
+        if(parser_result > 0) then
+          alpha_vis(eID) = alpha(eID)/alpha_max
+        else
+          alpha_vis(eID) = 0.0
+        end if
+      end if
+    end do
+#endif
     
     
 !   Start first space propagation sweep (MPI-optimized)

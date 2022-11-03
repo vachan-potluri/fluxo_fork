@@ -203,6 +203,9 @@ nOutvars = nOutvars + 1
 nOutvars = nOutvars + 1
 #endif /*NFVSE_CORR*/
 #endif /*SHOCK_NFVSE*/
+#if FLUXO_HYPERSONIC
+nOutvars = nOutvars + 1
+#endif
 allocate(strvarnames_tmp(nOutVars))
 
 ! Set the default names
@@ -221,6 +224,11 @@ nVars = nVars+1
 strvarnames_tmp(nVars) = 'BlendingFunction_old'
 #endif /*NFVSE_CORR*/
 #endif /*SHOCK_NFVSE*/
+
+#if FLUXO_HYPERSONIC
+nVars = nVars+1
+strvarnames_tmp(nVars) = 'BlendingFunction_vis'
+#endif
 
 
 OutputInitIsDone =.TRUE.
@@ -291,6 +299,9 @@ use MOD_NFVSE_Vars ,only: alpha
 use MOD_NFVSE_Vars ,only: alpha_old
 #endif /*NFVSE_CORR*/
 #endif /*SHOCK_NFVSE*/
+#if FLUXO_HYPERSONIC
+use MOD_NFVSE_Vars, only: alpha_vis
+#endif
 USE MOD_Output_Vars,ONLY:OutputFormat
 USE MOD_Mesh_Vars  ,ONLY:Elem_xGP,nElems
 USE MOD_Output_Vars,ONLY:NVisu,Vdm_GaussN_NVisu, strvarnames_tmp, nOutVars, PrimVisuDefault
@@ -380,6 +391,10 @@ DO iElem=1,nElems
   U_NVisu(nVars ,:,:,:,iElem) = alpha_old(iElem)
 #endif /*NFVSE_CORR*/
 #endif /*SHOCK_NFVSE*/
+#if FLUXO_HYPERSONIC
+  nVars = nVars+1
+  U_NVisu(nVars,:,:,:,iElem) = alpha_vis(iElem)
+#endif
 END DO !iElem
 CALL VisualizeAny(OutputTime,nOutvars,Nvisu,.FALSE.,Coords_Nvisu,U_Nvisu,FileTypeStr,strvarnames_tmp)
 DEALLOCATE(U_NVisu)

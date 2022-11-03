@@ -314,6 +314,9 @@ SDEALLOCATE(BC)
 ! Volume
 SDEALLOCATE(Elem_xGP)
 SDEALLOCATE(Elem_centers)
+#if FLUXO_HYPERSONIC
+SDEALLOCATE(Elem_at_wall)
+#endif
 SDEALLOCATE(Metrics_fTilde)
 SDEALLOCATE(Metrics_gTilde)
 SDEALLOCATE(Metrics_hTilde)

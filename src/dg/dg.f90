@@ -357,7 +357,11 @@ CALL U_Mortar_Eqn(U_master,U_slave,doMPISides=.FALSE.)
 
 ! If we're doing shock-capturing with NFVSE, compute the blending coefficient (MPI communication is done inside)
 #if SHOCK_NFVSE
+#if FLUXO_HYPERSONIC
+call CalcBlendingCoefficient(U,tIn)
+#else /*FLUXO_HYPERSONIC*/
 call CalcBlendingCoefficient(U)
+#endif /*FLUXO_HYPERSONIC*/
 #endif /*SHOCK_NFVSE*/
 
 ! for all remaining sides (buffer routine for latency hiding!)

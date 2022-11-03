@@ -233,6 +233,9 @@ USE MOD_DG_Vars      ,ONLY:D_Hat_T,U
 USE MOD_Lifting_Vars ,ONLY:gradPx,gradPy,gradPz
 USE MOD_Flux         ,ONLY:EvalDiffFluxTilde3D
 USE MOD_Mesh_Vars    ,ONLY:nElems,metrics_ftilde,metrics_gtilde,metrics_htilde
+#if FLUXO_HYPERSONIC
+USE MOD_NFVSE_Vars   ,ONLY:alpha_vis
+#endif
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -262,9 +265,16 @@ DO iElem=1,nElems
   ! diffusion fluxes are accouted in the standard weak form
   DO k=0,PP_N; DO j=0,PP_N; DO i=0,PP_N
     DO l=0,PP_N
+#if FLUXO_HYPERSONIC
+      Ut(:,i,j,k,iElem) = Ut(:,i,j,k,iElem) + (1-alpha_vis(iElem))*( &
+                                                 D_Hat_T(l,i)*ftildeDiff(:,l,j,k)  &
+                                            +    D_Hat_T(l,j)*gtildeDiff(:,i,l,k)  &
+                                            +    D_Hat_T(l,k)*htildeDiff(:,i,j,l))
+#else
       Ut(:,i,j,k,iElem) = Ut(:,i,j,k,iElem) +    D_Hat_T(l,i)*ftildeDiff(:,l,j,k)  &
                                             +    D_Hat_T(l,j)*gtildeDiff(:,i,l,k)  &
                                             +    D_Hat_T(l,k)*htildeDiff(:,i,j,l)
+#endif
     END DO ! l
   END DO; END DO; END DO ! i,j,k
 END DO ! iElem

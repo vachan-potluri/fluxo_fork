@@ -77,7 +77,7 @@ module MOD_NFVSE_Vars
   real                  , allocatable :: alpha_Master(:)  !< Blending function on master sides
   real                  , allocatable :: alpha_Slave(:)   !< Blending function on slave sides
 #if FLUXO_HYPERSONIC
-  real, allocatable                   :: alpha_vis(:)     !< Blending function for viscous residual (it is only scaled though)
+  real, target, allocatable           :: alpha_vis(:)     !< Blending function for viscous residual (it is only scaled though)
   ! function parsers for wall blender limit and viscous blending region
   type (fparser)                      :: wall_blender_limit_parser, viscous_blending_region_parser
 #endif

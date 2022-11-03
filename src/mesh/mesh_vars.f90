@@ -40,6 +40,9 @@ INTEGER           :: NGeoRef                   !< polynomial degree of reference
 REAL,ALLOCATABLE,TARGET :: NodeCoords(:,:,:,:,:) !< XYZ positions (equidistant,NGeo) of element interpolation points from meshfile
 REAL,ALLOCATABLE,TARGET :: Elem_xGP(:,:,:,:,:)          !< XYZ positions (first index 1:3) of the volume Gauss Point
 REAL,ALLOCATABLE,TARGET :: Elem_centers(:,:) !< Element centers (required for shock tube type initial condition)
+#if FLUXO_HYPERSONIC
+LOGICAL,ALLOCATABLE,TARGET :: Elem_at_wall(:) !< Flag if element is at wall boundary (to modify blending coefficient value)
+#endif
 REAL,ALLOCATABLE :: Face_xGP(:,:,:,:)            !< XYZ positions (first index 1:3) of the Face Gauss Point
 LOGICAL,ALLOCATABLE :: Elem_inCyl(:)         ! flag if elem is in Cylinder
 !----------------------------------------------------------------------------------------------------------------------------------

@@ -142,6 +142,9 @@ contains
     ! --------------------
     SDEALLOCATE(SubCellMetrics)
     SDEALLOCATE(alpha)
+#if FLUXO_HYPERSONIC
+    SDEALLOCATE(alpha_vis)
+#endif
     SDEALLOCATE(alpha_Master)
     SDEALLOCATE(alpha_Slave)
     
@@ -225,6 +228,9 @@ contains
     
     ! Allocate storage
     allocate ( alpha(nElems) )
+#if FLUXO_HYPERSONIC
+    allocate ( alpha_vis(nElems) )
+#endif
     allocate ( alpha_Master(firstMortarInnerSide:nSides ) )
     allocate ( alpha_Slave (firstSlaveSide:LastSlaveSide) )
     allocate ( sWGP(0:PP_N) )
@@ -232,6 +238,9 @@ contains
     
     ! Some initializations
     alpha        = 0.0
+#if FLUXO_HYPERSONIC
+    alpha_vis = 0.0
+#endif
     alpha_Master = 0.0
     alpha_Slave  = 0.0
     select case (ModalThreshold)
@@ -408,6 +417,9 @@ contains
   subroutine InitNFVSEAfterAdaptation(ChangeElem,nElemsOld,nSidesOld,firstSlaveSideOld,LastSlaveSideOld,firstMortarInnerSideOld)
     USE MOD_Globals
     use MOD_NFVSE_Vars         , only: SubCellMetrics, alpha, alpha_Master, alpha_Slave, TimeRelFactor, alpha_max, alpha_min, ComputeAlpha, ShockBlendCoef
+#if FLUXO_HYPERSONIC
+    USE MOD_NFVSE_Vars         , only: alpha_vis
+#endif
     use MOD_Mesh_Vars          , only: nElems,nSides,firstSlaveSide,LastSlaveSide,firstMortarInnerSide
 #if NFVSE_CORR
     use MOD_NFVSE_Vars         , only: FFV_m_FDG, alpha_old
@@ -476,6 +488,10 @@ contains
       if (nElems /= nElemsOld) then
         SDEALLOCATE(alpha)
         allocate(alpha(nElems))
+#if FLUXO_HYPERSONIC
+        SDEALLOCATE(alpha_vis)
+        allocate(alpha_vis(nElems))
+#endif
       end if
       alpha = 0.0
     end if
@@ -1569,7 +1585,7 @@ contains
     use MOD_NFVSE_MPI          , only: ProlongBlendingCoeffToFaces, PropagateBlendingCoeff
     use MOD_NFVSE_Vars         , only: SpacePropSweeps, TimeRelFactor, alpha, alpha_max, alpha_min, ComputeAlpha, ShockBlendCoef, sharpness, threshold
 #if FLUXO_HYPERSONIC
-    use MOD_Mesh_Vars          , only: Elem_centers
+    use MOD_Mesh_Vars          , only: Elem_centers, Elem_at_wall
     use MOD_NFVSE_Vars         , only: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
     use iso_fortran_env        , only: output_unit
 #endif
@@ -1651,8 +1667,20 @@ contains
         parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), t]
       else
         ! generally viscous blending region is not time dependent, so give some dummy value
+        ! for wall blender limit, this may effect the value
         parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), 0.0]
       end if
+      ! apply wall blender limit on alpha
+      CALL wall_blender_limit_parser%evaluate(parser_vals, parser_result)
+      if(wall_blender_limit_parser%error()) then
+        call wall_blender_limit_parser%print_errors(output_unit)
+      else
+        if(Elem_at_wall(eID)) then
+          alpha(eID) = MAX(alpha(eID), parser_result)
+        end if
+      end if
+
+      ! calculate the viscous blending coefficient
       CALL viscous_blending_region_parser%evaluate(parser_vals, parser_result)
       if(viscous_blending_region_parser%error()) then
         call viscous_blending_region_parser%print_errors(output_unit)
@@ -1946,6 +1974,9 @@ contains
 !===================================================================================================================================
   subroutine FinalizeNFVSE()
     use MOD_NFVSE_Vars, only: SubCellMetrics, sWGP, Compute_FVFluxes, alpha, alpha_Master, alpha_Slave
+#if FLUXO_HYPERSONIC
+    use MOD_NFVSE_Vars, only: alpha_vis
+#endif
 #if NFVSE_CORR
     use MOD_NFVSE_Vars, only: FFV_m_FDG, alpha_old
 #endif /*NFVSE_CORR*/
@@ -1956,6 +1987,9 @@ contains
     implicit none
     
     SDEALLOCATE (alpha)
+#if FLUXO_HYPERSONIC
+    SDEALLOCATE(alpha_vis)
+#endif
     SDEALLOCATE (alpha_Master)
     SDEALLOCATE (alpha_Slave)
     SDEALLOCATE (SubCellMetrics)

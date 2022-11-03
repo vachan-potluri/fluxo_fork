@@ -181,6 +181,9 @@ USE MOD_Mesh_Vars,          ONLY:Elems
 USE MOD_Mesh_Vars,          ONLY:GETNEWELEM,GETNEWSIDE
 USE MOD_Mesh_Vars,          ONLY:NodeTypeMesh
 use MOD_Mesh_Vars,          ONLY:MeshIsNonConforming
+#if FLUXO_HYPERSONIC
+use MOD_Mesh_Vars,          ONLY:Elem_at_wall
+#endif
 #if USE_AMR
 USE MOD_AMR_Vars,           ONLY:UseAMR
 USE MOD_P4EST,              ONLY: p4estSetMPIData
@@ -647,6 +650,24 @@ END IF
 #if MPI
 call MPI_Bcast(MeshIsNonConforming, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, iError)
 #endif /*MPI*/
+
+#if FLUXO_HYPERSONIC
+ALLOCATE(Elem_at_wall(nElems))
+! Flag if element is at a wall boundary
+do iElem=FirstElemInd,LastElemInd
+  Elem_at_wall(iElem) = .FALSE.
+  aElem=>Elems(iElem)%ep
+  do iLocSide=1,6
+    aSide=>aElem%Side(iLocSide)%sp
+    if(aSide%BCindex .NE. 0) then
+      if(BoundaryType(aSide%BCindex,BC_TYPE).EQ.4) then
+        Elem_at_wall(iElem) = .TRUE.
+        EXIT
+      end if
+    end if
+  end do
+end do
+#endif
 
 IF(MPIRoot)THEN
   WRITE(UNIT_stdOut,'(A,A34,I0)')' |','nElems | ',ReduceData(1) !nElems

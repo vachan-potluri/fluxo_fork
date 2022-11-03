@@ -98,6 +98,13 @@ contains
     call prms%CreateRealOption(   "PositCorrFactor",  " The correction factor for NFVSE", "0.1")
     call prms%CreateIntOption(       "PositMaxIter",  " Maximum number of iterations for positivity limiter", "10")
 #endif /*NFVSE_CORR*/
+#if FLUXO_HYPERSONIC
+    call prms%CreateStringOption("Viscous blending region", "A function evaulated at every cell center."//&
+                                 " If this evaluates to a positive quantity, viscous residual is scaled."&
+                                 ,"1")
+    call prms%CreateStringOption("Wall blender limit", "A function of time for the wall blender limit."&
+                                 ,"0")
+#endif
    
   end subroutine DefineParametersNFVSE
 !===================================================================================================================================

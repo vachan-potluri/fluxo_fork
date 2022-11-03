@@ -654,9 +654,9 @@ call MPI_Bcast(MeshIsNonConforming, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, iError)
 #if FLUXO_HYPERSONIC
 ALLOCATE(Elem_at_wall(nElems))
 ! Flag if element is at a wall boundary
-do iElem=FirstElemInd,LastElemInd
+do iElem=1,nElems
   Elem_at_wall(iElem) = .FALSE.
-  aElem=>Elems(iElem)%ep
+  aElem=>Elems(iElem+FirstElemInd-1)%ep
   do iLocSide=1,6
     aSide=>aElem%Side(iLocSide)%sp
     if(aSide%BCindex .NE. 0) then

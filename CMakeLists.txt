@@ -81,7 +81,7 @@ OPTION(FLUXO_ENABLE_MPI "Compile SINGLE or MPI version" ON)
 #SET(FLUXO_ENABLE_LAPACK "off" CACHE STRING "link with LAPACK, (off/on/MKL)")
 #SET_PROPERTY(CACHE FLUXO_ENABLE_LAPACK PROPERTY STRINGS off on MKL )
 OPTION(FLUXO_BUILD_PAPI "Use PAPI library to perform performance measurements (e.g. flop counts)." OFF)
-OPTION(FLUXO_BUILD_HDF5 "Compile and build hdf5 library" OFF)
+OPTION(FLUXO_BUILD_HDF5 "Compile and build hdf5 library" ON)
 OPTION(FLUXO_AMR        "Compile and build with p4est / AMR support" OFF)
 OPTION(FLUXO_PARABOLIC "Enable parabolic terms of equation-system" OFF)
 

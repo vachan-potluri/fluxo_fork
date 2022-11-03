@@ -259,6 +259,10 @@ IF (FLUXO_PARABOLIC)
 
   IF(FLUXO_EQNSYSNAME STREQUAL "navierstokes")
     LIST(APPEND LIFTING_VARS "entropy_var" "cons_var" "prim_var" )
+    OPTION(FLUXO_HYPERSONIC "Enable viscous residual blending for hypersonic flows" OFF)
+    IF(FLUXO_HYPERSONIC)
+      ADD_DEFINITIONS(-DFLUXO_HYPERSONIC=1)
+    ENDIF()
   ELSEIF(FLUXO_EQNSYSNAME STREQUAL "linearscalaradvection")
     LIST(APPEND LIFTING_VARS "cons_var")
   ELSEIF(FLUXO_EQNSYSNAME STREQUAL "mhd")
@@ -655,6 +659,20 @@ IF(FLUXO_BUILD_PAPI)
   MESSAGE(STATUS "Building Fluxo with PAPI benchmark support.") 
 ENDIF()
 
+# Download function parser files from https://github.com/jacobwilliams/fortran_function_parser/tree/3967575aaa3951b42c94c456537f282d2f84875a/src (tag "1.1.0")
+IF(FLUXO_HYPERSONIC)
+  FILE(
+    DOWNLOAD
+    https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/function_parser.f90
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/function_parser.f90
+  )
+  FILE(
+    DOWNLOAD
+    https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/error_module.f90
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/error_module.f90
+  )
+ENDIF()
+
 # =========================================================================
 # Fluxo sources & targets
 # =========================================================================
@@ -696,6 +714,11 @@ FILE(GLOB dgF90            ./src/dg/*.f90)
 IF (FLUXO_PARABOLIC)
   FILE(GLOB liftingF90     ./src/dg/${FLUXO_PARABOLIC_LIFTING}/*.f90)
   LIST(APPEND dgF90 ${liftingF90})
+ENDIF()
+
+IF(FLUXO_HYPERSONIC)
+  FILE(GLOB function_parserF90 ./src/function_parser/*.f90)
+  LIST(APPEND fluxoF90 ${function_parserF90})
 ENDIF()
 
 # define libs

@@ -54,6 +54,9 @@ USE MOD_Riemann,         ONLY: AddNonConsFlux
 USE MOD_Lifting_Vars,    ONLY: gradPx_Master,gradPy_Master,gradPz_Master
 USE MOD_Lifting_Vars,    ONLY: gradPx_Slave ,gradPy_Slave ,gradPz_Slave
 #endif /*PARABOLIC*/
+#if FLUXO_HYPERSONIC
+USE MOD_NFVSE_Vars,      ONLY: alpha_vis_Master, alpha_vis_Slave
+#endif
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -85,7 +88,11 @@ DO SideID=firstSideID,lastSideID
                                   gradPy_Master(:,:,:,SideID),gradPy_Slave(:,:,:,SideID), &
                                   gradPz_Master(:,:,:,SideID),gradPz_Slave(:,:,:,SideID), &
 #endif /*PARABOLIC*/
-				  NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
+				  NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+          , alpha_vis_Master(SideID), alpha_vis_Slave(SideID) &
+#endif
+          )
 
   !conservative flux:
   Flux_slave(:,:,:,SideID)=Flux_master(:,:,:,SideID)

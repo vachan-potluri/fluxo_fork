@@ -211,6 +211,9 @@ USE MOD_Flux         ,ONLY: EvalEulerFlux1D
 USE MOD_Lifting_Vars ,ONLY: gradPx_Master,gradPy_Master,gradPz_Master
 USE MOD_Flux         ,ONLY: EvalDiffFlux3D,EvalDiffFlux1D_Outflow
 #endif /*PARABOLIC*/
+#if FLUXO_HYPERSONIC
+USE MOD_NFVSE_Vars   ,ONLY: alpha_vis_Master
+#endif
 USE MOD_Testcase_GetBoundaryFlux, ONLY: TestcaseGetBoundaryFlux
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -255,7 +258,11 @@ DO iBC=1,nBCs
                    gradPy_Master(:,:,:,SideID),gradPy_Master(:,:,:,SideID), &
                    gradPz_Master(:,:,:,SideID),gradPz_Master(:,:,:,SideID), &
 #endif /*PARABOLIC*/
-                   NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
+                   NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+#endif
+                   )
     END DO !iSide=1,nBCloc
   CASE(2)
     ! BCState specifies refstate to be used, if 0 then use iniexactfunc
@@ -273,7 +280,11 @@ DO iBC=1,nBCs
                      gradPy_Master(:,:,:,SideID),gradPy_Master(:,:,:,SideID), &
                      gradPz_Master(:,:,:,SideID),gradPz_Master(:,:,:,SideID), &
 #endif /*PARABOLIC*/
-                     NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
+                     NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+#endif
+                   )
       END DO !iSide=1,nBCloc
     ELSE !BCstate /= 0
       DO q=0,PP_N
@@ -289,7 +300,11 @@ DO iBC=1,nBCs
                      gradPy_Master(:,:,:,SideID),gradPy_Master(:,:,:,SideID), &
                      gradPz_Master(:,:,:,SideID),gradPz_Master(:,:,:,SideID), &
 #endif /*PARABOLIC*/
-                     NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
+                     NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+#endif
+                   )
       END DO !iSide=1,nBCloc
     END IF !BCState=0
   
@@ -308,7 +323,11 @@ DO iBC=1,nBCs
                    gradPy_Master(:,:,:,SideID),gradPy_Master(:,:,:,SideID), &
                    gradPz_Master(:,:,:,SideID),gradPz_Master(:,:,:,SideID), &
 #endif /*PARABOLIC*/
-                   NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
+                   NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+#endif
+                   )
     END DO !iSide=1,nBCloc
   CASE(4) ! Isothermal Wall, Euler = Slip Wall (see CASE(9)), Diffusion: density=inside, velocity=0, rhoE=c_v * rho_L *T_wall
     DO iSide=1,nBCLoc
@@ -361,10 +380,17 @@ DO iBC=1,nBCs
                           gradPz_Master(:,:,:,SideID))                           
       ! Sum up Euler and Diffusion Flux
       DO iVar=2,PP_nVar
+#if FLUXO_HYPERSONIC
+        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis_Master(SideID))*( & 
+                                NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
+                                NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
+                                NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:))
+#else
         Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID)               + & 
                                 NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
                                 NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
                                 NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:)
+#endif
       END DO ! ivar
 #endif /*PARABOLIC*/
     END DO !iSide=1,nBCLoc
@@ -431,10 +457,17 @@ DO iBC=1,nBCs
                           gradPx_Face_loc,gradPy_Face_loc,gradPz_Face_loc)
       ! Sum up Euler and Diffusion Flux
       DO iVar=2,PP_nVar
+#if FLUXO_HYPERSONIC
+        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis_Master(SideID))*( & 
+                                NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
+                                NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
+                                NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:))
+#else
         Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID)                       + & 
                                 NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
                                 NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
                                 NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:)
+#endif
       END DO ! ivar
 #endif /*PARABOLIC*/
     END DO !iSide=1,nBCLoc
@@ -490,7 +523,11 @@ DO iBC=1,nBCs
       !   We use special evalflux routine
       CALL EvalDiffFlux1D_Outflow (Fd_Face_loc,U_Face_loc,gradVel)
       ! Sum up Euler and Diffusion Flux and tranform back into Cartesian system
+#if FLUXO_HYPERSONIC
+      Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + (1-alpha_vis_Master(SideID))*Fd_Face_loc
+#else
       Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + Fd_Face_loc
+#endif
 #endif /*PARABOLIC*/
       DO q=0,PP_N
         DO p=0,PP_N

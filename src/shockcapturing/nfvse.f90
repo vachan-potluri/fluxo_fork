@@ -143,11 +143,13 @@ contains
     ! --------------------
     SDEALLOCATE(SubCellMetrics)
     SDEALLOCATE(alpha)
-#if FLUXO_HYPERSONIC
-    SDEALLOCATE(alpha_vis)
-#endif
     SDEALLOCATE(alpha_Master)
     SDEALLOCATE(alpha_Slave)
+#if FLUXO_HYPERSONIC
+    SDEALLOCATE(alpha_vis)
+    SDEALLOCATE(alpha_vis_Master)
+    SDEALLOCATE(alpha_vis_Slave)
+#endif
     
     ! Get parameters
     ! --------------
@@ -229,21 +231,25 @@ contains
     
     ! Allocate storage
     allocate ( alpha(nElems) )
-#if FLUXO_HYPERSONIC
-    allocate ( alpha_vis(nElems) )
-#endif
     allocate ( alpha_Master(firstMortarInnerSide:nSides ) )
     allocate ( alpha_Slave (firstSlaveSide:LastSlaveSide) )
+#if FLUXO_HYPERSONIC
+    allocate ( alpha_vis(nElems) )
+    allocate ( alpha_vis_Master(firstMortarInnerSide:nSides ) )
+    allocate ( alpha_vis_Slave (firstSlaveSide:LastSlaveSide) )
+#endif
     allocate ( sWGP(0:PP_N) )
     allocate ( SubCellMetrics(nElems) )
     
     ! Some initializations
     alpha        = 0.0
-#if FLUXO_HYPERSONIC
-    alpha_vis = 0.0
-#endif
     alpha_Master = 0.0
     alpha_Slave  = 0.0
+#if FLUXO_HYPERSONIC
+    alpha_vis = 0.0
+    alpha_vis_Master = 0.0
+    alpha_vis_Slave = 0.0
+#endif
     select case (ModalThreshold)
       case(1) ; threshold = 0.5 * 10.0 ** (-1.8 * (PP_N+1.)**0.25) ! Sebastian's thresold (Euler and MHD paper)
       case(2) ; threshold = 0.5 * 10.0 ** (-1.8 * PP_N**0.25)      ! New threshold
@@ -419,7 +425,7 @@ contains
     USE MOD_Globals
     use MOD_NFVSE_Vars         , only: SubCellMetrics, alpha, alpha_Master, alpha_Slave, TimeRelFactor, alpha_max, alpha_min, ComputeAlpha, ShockBlendCoef
 #if FLUXO_HYPERSONIC
-    USE MOD_NFVSE_Vars         , only: alpha_vis
+    USE MOD_NFVSE_Vars         , only: alpha_vis, alpha_vis_Master, alpha_vis_Slave
 #endif
     use MOD_Mesh_Vars          , only: nElems,nSides,firstSlaveSide,LastSlaveSide,firstMortarInnerSide
 #if NFVSE_CORR
@@ -444,10 +450,18 @@ contains
     if ( (firstMortarInnerSideOld .ne. firstMortarInnerSide) .or. (nSides .ne. nSidesOld) ) then
       SDEALLOCATE(alpha_Master)
       allocate ( alpha_Master(firstMortarInnerSide:nSides ) )
+#if FLUXO_HYPERSONIC
+      SDEALLOCATE(alpha_vis_Master)
+      allocate ( alpha_vis_Master(firstMortarInnerSide:nSides ) )
+#endif
     end if
     if ( (firstSlaveSide .ne. firstSlaveSideOld) .or. (LastSlaveSide .ne. LastSlaveSideOld) ) then
       SDEALLOCATE(alpha_Slave)
       allocate ( alpha_Slave (firstSlaveSide:LastSlaveSide) )
+#if FLUXO_HYPERSONIC
+      SDEALLOCATE(alpha_vis_Slave)
+      allocate ( alpha_vis_Slave (firstSlaveSide:LastSlaveSide) )
+#endif
     end if
     if (nElems /= nElemsOld) then
       SDEALLOCATE(SubCellMetrics)
@@ -467,6 +481,10 @@ contains
 !   -----------------
     alpha_Master = 0.0
     alpha_Slave  = 0.0
+#if FLUXO_HYPERSONIC
+    alpha_vis_Master = 0.0
+    alpha_vis_Slave = 0.0
+#endif
     
     ! Check if we need the alpha from the previous mesh and assign it if we do!
     if ( (ComputeAlpha==20 .and. ShockBlendCoef<-1.0) .or. (TimeRelFactor > alpha_min/alpha_max) ) then
@@ -1968,7 +1986,7 @@ contains
   subroutine FinalizeNFVSE()
     use MOD_NFVSE_Vars, only: SubCellMetrics, sWGP, Compute_FVFluxes, alpha, alpha_Master, alpha_Slave
 #if FLUXO_HYPERSONIC
-    use MOD_NFVSE_Vars, only: alpha_vis
+    use MOD_NFVSE_Vars, only: alpha_vis, alpha_vis_Master, alpha_vis_Slave
 #endif
 #if NFVSE_CORR
     use MOD_NFVSE_Vars, only: FFV_m_FDG, alpha_old
@@ -1980,11 +1998,13 @@ contains
     implicit none
     
     SDEALLOCATE (alpha)
-#if FLUXO_HYPERSONIC
-    SDEALLOCATE(alpha_vis)
-#endif
     SDEALLOCATE (alpha_Master)
     SDEALLOCATE (alpha_Slave)
+#if FLUXO_HYPERSONIC
+    SDEALLOCATE(alpha_vis)
+    SDEALLOCATE (alpha_vis_Master)
+    SDEALLOCATE (alpha_vis_Slave)
+#endif
     SDEALLOCATE (SubCellMetrics)
     SDEALLOCATE (sWGP)
 #if MPI

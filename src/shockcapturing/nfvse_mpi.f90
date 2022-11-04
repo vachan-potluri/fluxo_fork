@@ -33,6 +33,9 @@ contains
 !===================================================================================================================================
   subroutine ProlongBlendingCoeffToFaces()
     use MOD_NFVSE_Vars, only: alpha, alpha_Master, alpha_Slave
+#if FLUXO_HYPERSONIC
+    use MOD_NFVSE_Vars, only: alpha_vis, alpha_vis_Master, alpha_vis_Slave
+#endif
     use MOD_Mesh_Vars , only: SideToElem, firstMortarInnerSide, nSides
     implicit none
     !-------------------------------------------------------------------------------------------------------------------------------
@@ -45,13 +48,19 @@ contains
       ElemID    = SideToElem(S2E_ELEM_ID,SideID) !element belonging to master side
       !master sides(ElemID,locSide and flip =-1 if not existing)
       if(ElemID.NE.-1) then ! element belonging to master side is on this processor
-        alpha_Master(SideID) = alpha(ElemID) 
+        alpha_Master(SideID) = alpha(ElemID)
+#if FLUXO_HYPERSONIC
+        alpha_vis_Master(SideID) = alpha_vis(ElemID)
+#endif
       end if
       
       nbElemID  = SideToElem(S2E_NB_ELEM_ID,SideID) !element belonging to slave side
       !slave side (nbElemID,nblocSide and flip =-1 if not existing)
       if(nbElemID.NE.-1) then! element belonging to slave side is on this processor
         alpha_Slave (SideID) = alpha(nbElemID) 
+#if FLUXO_HYPERSONIC
+        alpha_vis_Slave(SideID) = alpha_vis(nbElemID)
+#endif
       end if
     end do
     
@@ -59,6 +68,9 @@ contains
 !   ATTENTION: This has to be done before calling Start_BlendCoeff_MPICommunication!!
 !   ---------------------------------------------------------------------------------
     call Alpha_Mortar(alpha_Master,alpha_Slave,doMPISides=.FALSE.)
+#if FLUXO_HYPERSONIC
+    call Alpha_Mortar(alpha_vis_Master, alpha_vis_Slave, doMPISides=.FALSE.)
+#endif
     
 !   Send and receive alpha from master and slave sides
 !   --------------------------------------------------
@@ -167,6 +179,9 @@ contains
 !===================================================================================================================================
   subroutine Start_BlendCoeff_MPICommunication()
     use MOD_NFVSE_Vars         , only: alpha_Master, alpha_Slave
+#if FLUXO_HYPERSONIC
+    use MOD_NFVSE_Vars         , only: alpha_vis_Master, alpha_vis_Slave
+#endif
     use MOD_MPI                , only: StartReceiveMPIData,StartSendMPIData
     use MOD_Mesh_Vars          , only: firstSlaveSide, LastSlaveSide,firstMortarInnerSide,nSides
     use MOD_NFVSE_Vars         , only: MPIRequest_alpha
@@ -192,7 +207,24 @@ contains
     
     ! Send the master
     call StartSendMPIData   (alpha_Master, 1, firstMortarInnerSide, nSides, &
-                             MPIRequest_alpha(:,4),SendID=1) 
+                             MPIRequest_alpha(:,4),SendID=1)
+
+#if FLUXO_HYPERSONIC
+    ! receive the slave
+    call StartReceiveMPIData(alpha_vis_Slave , 1, firstSlaveSide, lastSlaveSide, &
+                             MPIRequest_alpha(:,1), SendID=2) ! Receive MINE (sendID=2)
+    ! receive the master
+    call StartReceiveMPIData(alpha_vis_Master, 1, firstMortarInnerSide,nSides, &
+                             MPIRequest_alpha(:,2), SendID=1) ! Receive YOUR  (sendID=1)
+    ! transfer the mortar to the right MPI faces 
+    CALL Alpha_Mortar(alpha_vis_Master,alpha_vis_Slave,doMPISides=.TRUE.)
+    ! Send the slave
+    call StartSendMPIData   (alpha_vis_Slave , 1, firstSlaveSide, lastSlaveSide, &
+                             MPIRequest_alpha(:,3), SendID=2) ! SEND YOUR (sendID=2)
+    ! Send the master
+    call StartSendMPIData   (alpha_vis_Master, 1, firstMortarInnerSide, nSides, &
+                             MPIRequest_alpha(:,4),SendID=1)
+#endif
     
   end subroutine Start_BlendCoeff_MPICommunication
 #endif /*MPI*/

@@ -25,7 +25,7 @@ module MOD_NFVSE_Vars
   public :: ComputeAlpha, alpha_max, alpha_min, ShockBlendCoef, sharpness, threshold, ModalThreshold
   public :: SubCellMetrics, sWGP, alpha, alpha_Master, alpha_Slave
 #if FLUXO_HYPERSONIC
-  public :: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
+  public :: alpha_vis, alpha_vis_Master, alpha_vis_Slave, wall_blender_limit_parser, viscous_blending_region_parser
 #endif
   public :: SubCellMetrics_t, InnerFaceMetrics_t
 #if MPI
@@ -79,6 +79,7 @@ module MOD_NFVSE_Vars
 #if FLUXO_HYPERSONIC
   real, target, allocatable           :: alpha_vis(:)     !< Blending function for viscous residual (it is only scaled though)
   ! function parsers for wall blender limit and viscous blending region
+  real, allocatable                   :: alpha_vis_Master(:), alpha_vis_Slave(:)
   type (fparser)                      :: wall_blender_limit_parser, viscous_blending_region_parser
 #endif
   real                                :: threshold        !< Threshold for the shock indicator

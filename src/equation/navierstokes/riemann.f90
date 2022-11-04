@@ -105,7 +105,11 @@ SUBROUTINE Riemann(F,U_L,U_R, &
 #if PARABOLIC
                    gradUx_L,gradUx_R,gradUy_L,gradUy_R,gradUz_L,gradUz_R, &
 #endif /*PARABOLIC*/
-                   nv,t1,t2)
+                   nv,t1,t2 &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis_L, alpha_vis_R &
+#endif
+                   )
 ! MODULES
 USE MOD_PreProc
 USE MOD_Equation_Vars   ,ONLY:SolveRiemannProblem
@@ -133,6 +137,9 @@ REAL,INTENT(IN) :: gradUz_R(PP_nVar,0:PP_N,0:PP_N) !< right state gradient in z,
 REAL,INTENT(IN) :: nv(            3,0:PP_N,0:PP_N) !< normal vector of face
 REAL,INTENT(IN) :: t1(            3,0:PP_N,0:PP_N) !< 1st tangential vector of face
 REAL,INTENT(IN) :: t2(            3,0:PP_N,0:PP_N) !< 2nd tangential vector of face
+#if FLUXO_HYPERSONIC
+REAL,INTENT(IN), OPTIONAL :: alpha_vis_L, alpha_vis_R
+#endif
 !----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
 REAL,INTENT(OUT):: F(       PP_nVar,0:PP_N,0:PP_N) !< numerical flux on face
@@ -142,6 +149,9 @@ INTEGER                                       :: i,j,iVar
 REAL,DIMENSION(PP_nVar,0:PP_N,0:PP_N)         :: U_LL,U_RR
 #if PARABOLIC
 REAL,DIMENSION(PP_nVar,0:PP_N,0:PP_N)         :: g_L,g_R,k_L,k_R,j_L,j_R
+#endif
+#if FLUXO_HYPERSONIC
+REAL :: op_alpha_vis_L, op_alpha_vis_R
 #endif
 !REAL                                          :: Sum1, sum2, sum3, sum3_1, sum3_2, suma, sumb ! ECMORTAR
 !REAL                                          :: math_entropy_R, math_entropy_L, prim(PP_nVar), sRho, pres,v1,v2,v3 ! ECMORTAR
@@ -161,9 +171,26 @@ CALL EvalDiffFlux3D(k_R,g_R,j_R,U_R,gradUx_R,gradUy_R,gradUz_R)
 !
 ! !BR1/BR2 uses arithmetic mean of the fluxes
 DO iVar=2,PP_nVar
+#if FLUXO_HYPERSONIC
+  ! scale diffusive flux since scaling the overall diffusive residual is not possible in this framework
+  if(present(alpha_vis_L)) then
+    op_alpha_vis_L = alpha_vis_L
+  else
+    op_alpha_vis_L = 0.0
+  end if
+  if(present(alpha_vis_R)) then
+    op_alpha_vis_R = alpha_vis_R
+  else
+    op_alpha_vis_R = 0.0
+  end if
+  F(iVar,:,:)=F(iVar,:,:)+0.5*( nv(1,:,:)*((1-op_alpha_vis_L)*k_L(iVar,:,:)+(1-op_alpha_vis_R)*k_R(iVar,:,:)) &
+                               +nv(2,:,:)*((1-op_alpha_vis_L)*g_L(iVar,:,:)+(1-op_alpha_vis_R)*g_R(iVar,:,:)) &
+                               +nv(3,:,:)*((1-op_alpha_vis_L)*j_L(iVar,:,:)+(1-op_alpha_vis_R)*j_R(iVar,:,:)))
+#else
   F(iVar,:,:)=F(iVar,:,:)+0.5*( nv(1,:,:)*(k_L(iVar,:,:)+k_R(iVar,:,:)) &
                                +nv(2,:,:)*(g_L(iVar,:,:)+g_R(iVar,:,:)) &
                                +nv(3,:,:)*(j_L(iVar,:,:)+j_R(iVar,:,:)))
+#endif
 END DO
 #endif /* PARABOLIC */
 END SUBROUTINE Riemann

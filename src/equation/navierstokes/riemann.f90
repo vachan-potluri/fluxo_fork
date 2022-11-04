@@ -170,19 +170,21 @@ CALL EvalDiffFlux3D(k_L,g_L,j_L,U_L,gradUx_L,gradUy_L,gradUz_L)
 CALL EvalDiffFlux3D(k_R,g_R,j_R,U_R,gradUx_R,gradUy_R,gradUz_R)
 !
 ! !BR1/BR2 uses arithmetic mean of the fluxes
+#if FLUXO_HYPERSONIC
+if(present(alpha_vis_L)) then
+  op_alpha_vis_L = alpha_vis_L
+else
+  op_alpha_vis_L = 0.0
+end if
+if(present(alpha_vis_R)) then
+  op_alpha_vis_R = alpha_vis_R
+else
+  op_alpha_vis_R = 0.0
+end if
+#endif
 DO iVar=2,PP_nVar
 #if FLUXO_HYPERSONIC
   ! scale diffusive flux since scaling the overall diffusive residual is not possible in this framework
-  if(present(alpha_vis_L)) then
-    op_alpha_vis_L = alpha_vis_L
-  else
-    op_alpha_vis_L = 0.0
-  end if
-  if(present(alpha_vis_R)) then
-    op_alpha_vis_R = alpha_vis_R
-  else
-    op_alpha_vis_R = 0.0
-  end if
   F(iVar,:,:)=F(iVar,:,:)+0.5*( nv(1,:,:)*((1-op_alpha_vis_L)*k_L(iVar,:,:)+(1-op_alpha_vis_R)*k_R(iVar,:,:)) &
                                +nv(2,:,:)*((1-op_alpha_vis_L)*g_L(iVar,:,:)+(1-op_alpha_vis_R)*g_R(iVar,:,:)) &
                                +nv(3,:,:)*((1-op_alpha_vis_L)*j_L(iVar,:,:)+(1-op_alpha_vis_R)*j_R(iVar,:,:)))

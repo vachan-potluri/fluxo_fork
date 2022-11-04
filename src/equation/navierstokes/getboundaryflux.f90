@@ -527,7 +527,7 @@ DO iBC=1,nBCs
       Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + (1-alpha_vis_Master(SideID))*Fd_Face_loc
 #else
       Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + Fd_Face_loc
-#endif
+#endif /*FLUXO_HYPERSONIC*/
 #endif /*PARABOLIC*/
       DO q=0,PP_N
         DO p=0,PP_N

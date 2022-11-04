@@ -24,6 +24,9 @@ module MOD_NFVSE_MPI
   
   private
   public ProlongBlendingCoeffToFaces, PropagateBlendingCoeff
+#if FLUXO_HYPERSONIC
+  public UpdateVisBlendingCoefficient
+#endif
 contains
 !===================================================================================================================================
 !> Prolong the blending coefficient to the faces
@@ -150,6 +153,13 @@ contains
         if (alpha(ElemID) < minAlpha(sideID)) alpha(ElemID) = minAlpha(sideID)
       END DO !iMortar
     END DO !MortarSideID
+
+#if FLUXO_HYPERSONIC
+    ! update viscous blending coefficient
+    ! the viscous blending region is generally not a function of time, so this function can
+    ! generally be called without any argument
+    call UpdateVisBlendingCoefficient()
+#endif
   end subroutine
 #if MPI
 !===================================================================================================================================
@@ -238,4 +248,37 @@ contains
       END DO !iMortar
     END DO !MortarSideID
   end subroutine Alpha_Mortar
+
+! Updates the viscous blending coefficient based on current time and current values of alpha
+#if FLUXO_HYPERSONIC
+  subroutine UpdateVisBlendingCoefficient(t)
+    use MOD_Mesh_Vars          , only: nElems, Elem_centers
+    use MOD_NFVSE_Vars         , only: alpha, alpha_max, alpha_vis, viscous_blending_region_parser
+    use iso_fortran_env        , only: output_unit
+
+    implicit none
+    real, intent(in), optional :: t
+    real, dimension(4) :: parser_vals
+    real :: parser_result
+    integer :: eID
+
+    do eID=1,nElems
+      if(present(t)) then
+        parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), t]
+      else
+        parser_vals = [Elem_centers(1,eID), Elem_centers(2,eID), Elem_centers(3,eID), 0.0]
+      end if
+      CALL viscous_blending_region_parser%evaluate(parser_vals, parser_result)
+      if(viscous_blending_region_parser%error()) then
+        call viscous_blending_region_parser%print_errors(output_unit)
+      else
+        if(parser_result > 0) then
+          alpha_vis(eID) = alpha(eID)/alpha_max
+        else
+          alpha_vis(eID) = 0.0
+        end if
+      end if
+    end do
+  end subroutine UpdateVisBlendingCoefficient
+#endif /*FLUXO_HYPERSONIC*/
 end module MOD_NFVSE_MPI

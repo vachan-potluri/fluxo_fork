@@ -1589,6 +1589,7 @@ contains
     use MOD_Mesh_Vars          , only: Elem_centers, Elem_at_wall
     use MOD_NFVSE_Vars         , only: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
     use iso_fortran_env        , only: output_unit
+    use MOD_NFVSE_MPI          , only: UpdateVisBlendingCoefficient
 #endif
     use MOD_ShockCapturing_Vars, only: Shock_Indicator
     ! For reconstruction on boundaries
@@ -1682,16 +1683,7 @@ contains
       end if
 
       ! calculate the viscous blending coefficient
-      CALL viscous_blending_region_parser%evaluate(parser_vals, parser_result)
-      if(viscous_blending_region_parser%error()) then
-        call viscous_blending_region_parser%print_errors(output_unit)
-      else
-        if(parser_result > 0) then
-          alpha_vis(eID) = alpha(eID)/alpha_max
-        else
-          alpha_vis(eID) = 0.0
-        end if
-      end if
+      CALL UpdateVisBlendingCoefficient(parser_vals(4))
     end do
 #endif
     

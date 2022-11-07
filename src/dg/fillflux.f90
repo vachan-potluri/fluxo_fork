@@ -90,12 +90,24 @@ DO SideID=firstSideID,lastSideID
 #endif /*PARABOLIC*/
 				  NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-          , alpha_vis_Master(SideID), alpha_vis_Slave(SideID) &
+          , alpha_vis_Master(SideID) &
 #endif
           )
 
+#if FLUXO_HYPERSONIC
+  ! slave flux is equal to master flux, except the scaling of viscous flux will be not based on
+  ! slave side alpha_vis
+  CALL Riemann(Flux_slave(:,:,:,SideID), U_Master(:,:,:,SideID), U_Slave(:,:,:,SideID), &
+                                  gradPx_Master(:,:,:,SideID),gradPx_Slave(:,:,:,SideID), &
+                                  gradPy_Master(:,:,:,SideID),gradPy_Slave(:,:,:,SideID), &
+                                  gradPz_Master(:,:,:,SideID),gradPz_Slave(:,:,:,SideID), &
+            NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+            , alpha_vis_Slave(SideID) &
+  )
+#else
   !conservative flux:
   Flux_slave(:,:,:,SideID)=Flux_master(:,:,:,SideID)
+#endif
 #if NONCONS
   !add nonconservative fluxes
   CALL AddNonConsFlux(Flux_master(:,:,:,SideID), &

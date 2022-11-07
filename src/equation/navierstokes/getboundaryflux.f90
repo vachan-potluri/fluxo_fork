@@ -260,7 +260,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                    NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+                   , alpha_vis_Master(SideID) &
 #endif
                    )
     END DO !iSide=1,nBCloc
@@ -282,7 +282,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                      NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+                   , alpha_vis_Master(SideID) &
 #endif
                    )
       END DO !iSide=1,nBCloc
@@ -302,7 +302,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                      NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+                   , alpha_vis_Master(SideID) &
 #endif
                    )
       END DO !iSide=1,nBCloc
@@ -325,7 +325,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                    NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID), alpha_vis_Master(SideID) &
+                   , alpha_vis_Master(SideID) &
 #endif
                    )
     END DO !iSide=1,nBCloc

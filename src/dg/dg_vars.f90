@@ -35,6 +35,10 @@ REAL,ALLOCATABLE                      :: D(:,:)                 !< Differentiati
 
 REAL,ALLOCATABLE                      :: D_T(:,:)               !< Transpose of differentiation matrix, size \([0..N,0..N]\). 
 
+REAL,ALLOCATABLE                      :: Dsurf(:,:)             !< Modified D matrix: Dsurf = D, but Dsurf(0,0)=D(0,0)+swGP(0) and
+                                                                !< Dsurf(N,N) = D(N,N)-sWGP(N)
+REAL,ALLOCATABLE                      :: Dsurf_T(:,:)           !< Transpose of Dsurf.
+
 REAL,ALLOCATABLE                      :: D_Hat(:,:)             !< Differentiation matrix premultiplied by
                                                                 !< mass matrix, \(\hat{D} =- M^{-1} D^T M\), size \([0..N,0..N]\).  
                                                                 !< for GL, SBP applies: \(\hat{D}=-M^{-1}Q^T=M^{-1}(Q-B)=D-M^{-1}B\)

@@ -182,7 +182,7 @@ SUBROUTINE InitDGbasis(N_in,xGP,wGP,wBary)
 !----------------------------------------------------------------------------------------------------------------------------------
 ! MODULES
 USE MOD_Basis,              ONLY: PolynomialDerivativeMatrix,LagrangeInterpolationPolys
-USE MOD_DG_Vars,            ONLY: D,D_T,D_Hat,D_Hat_T,L_Minus,L_Plus,L_HatMinus,L_HatMinus0,L_HatPlus
+USE MOD_DG_Vars,            ONLY: D,D_T,Dsurf,Dsurf_T,D_Hat,D_Hat_T,L_Minus,L_Plus,L_HatMinus,L_HatMinus0,L_HatPlus
 #if PP_DiscType==2
 USE MOD_DG_Vars,            ONLY: DvolSurf,DvolSurf_T
 #endif
@@ -206,6 +206,7 @@ INTEGER                            :: i
 ALLOCATE(L_Minus(0:N_in), L_Plus(0:N_in))
 ALLOCATE(L_HatMinus(0:N_in), L_HatPlus(0:N_in))
 ALLOCATE(D(    0:N_in,0:N_in), D_T(    0:N_in,0:N_in))
+ALLOCATE(Dsurf(0:N_in,0:N_in), Dsurf_T(0:N_in,0:N_in))
 ALLOCATE(D_Hat(0:N_in,0:N_in), D_Hat_T(0:N_in,0:N_in))
 ! Compute Differentiation matrix D on given interpolation points
 CALL PolynomialDerivativeMatrix(N_in,xGP,D)
@@ -220,6 +221,11 @@ DO i=0,N_in
 END DO
 D_Hat(:,:) = -MATMUL(Minv,MATMUL(TRANSPOSE(D),M))
 D_Hat_T= TRANSPOSE(D_hat)
+
+Dsurf(:,:) = D(:,:)
+Dsurf(0,0) = D(0,0) + 1./wGP(0)
+Dsurf(N_in,N_in) = D(N_in,N_in) - 1./wGP(N_in)
+Dsurf_T = TRANSPOSE(Dsurf)
 
 ! interpolate to left and right face (1 and -1) and pre-divide by mass matrix
 CALL LagrangeInterpolationPolys(1.,N_in,xGP,wBary,L_Plus)

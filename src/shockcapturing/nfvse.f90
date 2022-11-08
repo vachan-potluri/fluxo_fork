@@ -578,7 +578,7 @@ contains
     
     if (SpacePropSweeps > 0) then
       ! Receive alpha (MPI) and propagate
-      call PropagateBlendingCoeff()
+      ! call PropagateBlendingCoeff()
       ! Do furher sweeps if needed (not MPI-optimized)
       do sweep=2, SpacePropSweeps
         call ProlongBlendingCoeffToFaces()
@@ -1681,6 +1681,12 @@ contains
     elsewhere (alpha >= alpha_max)
       alpha = alpha_max
     end where
+!   Start first space propagation sweep (MPI-optimized)
+!   ---------------------------------------------------
+    if (SpacePropSweeps > 0) then
+      call ProlongBlendingCoeffToFaces()
+      call PropagateBlendingCoeff()
+    end if
 #if FLUXO_HYPERSONIC
     do eID=1,nElems
       if(present(t)) then
@@ -1699,16 +1705,11 @@ contains
           alpha(eID) = MAX(alpha(eID), parser_result)
         end if
       end if
-
-      ! calculate the viscous blending coefficient
-      CALL UpdateVisBlendingCoefficient(parser_vals(4))
     end do
+    ! calculate the viscous blending coefficient
+    ! CALL UpdateVisBlendingCoefficient(parser_vals(4))
+    call ProlongBlendingCoeffToFaces() ! MPI communication for alpha_vis
 #endif
-    
-    
-!   Start first space propagation sweep (MPI-optimized)
-!   ---------------------------------------------------
-    if (SpacePropSweeps > 0) call ProlongBlendingCoeffToFaces()
     
   end subroutine CalcBlendingCoefficient
 !===================================================================================================================================

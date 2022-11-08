@@ -95,7 +95,7 @@ DO SideID=firstSideID,lastSideID
           )
 
 #if FLUXO_HYPERSONIC
-  ! slave flux is equal to master flux, except the scaling of viscous flux will be not based on
+  ! slave flux is equal to master flux, except the scaling of viscous flux will be now based on
   ! slave side alpha_vis
   CALL Riemann(Flux_slave(:,:,:,SideID), U_Master(:,:,:,SideID), U_Slave(:,:,:,SideID), &
                                   gradPx_Master(:,:,:,SideID),gradPx_Slave(:,:,:,SideID), &

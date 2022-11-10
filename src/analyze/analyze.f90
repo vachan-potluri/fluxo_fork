@@ -409,6 +409,9 @@ REAL                            :: alpha_globmin,alpha_globmax,alpha_globavg
 ! Graphical output
 CalcTime=FLUXOTIME()
 SWRITE(UNIT_StdOut,'(A14,ES16.7)')' Sim time   : ',Time
+#if FLUXO_LOCAL_STEPPING
+SWRITE(UNIT_StdOut,*)'Using local time stepping!'
+#endif
 
 IF(MPIroot.AND.doAnalyzeToFile) THEN
   A2F_iVar=0  !reset counter

@@ -41,6 +41,10 @@ REAL             :: t=0.                      !< current physical time
 REAL             :: dt                        !< current timestep
 REAL             :: TEnd                      !< End time of simulation
 REAL             :: TAnalyze                  !< Analyze time intervall
+#if FLUXO_LOCAL_STEPPING
+REAL             :: tLocalStart               !< Time at which local time stepping is activated
+REAL             :: LocalStepCapFactor        !< The local time step is capped to this factor times the global step
+#endif
 REAL             :: CFLScale                  !< Convective CFL number
 REAL             :: DFLScale                  !< Viscous CFL number (only if PARABOLIC)
 REAL             :: PID                       !< performance index (wallclocktime*nRanks/timesteps/DOFS)

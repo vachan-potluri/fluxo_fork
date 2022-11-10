@@ -88,7 +88,7 @@ OPTION(FLUXO_PARABOLIC "Enable parabolic terms of equation-system" OFF)
 OPTION(FLUXO_SHOCKCAPTURE "Enable shock capturing for non-linear equations" OFF)
 OPTION(FLUXO_POSITIVITYPRES "Enable positivity preservation for non-linear equations" OFF)
 
-OPTION(FLUXO_LOCAL_STEPPING "Use local time stepping for accelerating steady state convergence" OFF)
+OPTION(FLUXO_LOCAL_STEPPING "Use local time stepping in TimeStepByLSERKW2() for accelerating steady state convergence" OFF)
 
 SET(   FLUXO_EQNSYSNAME "navierstokes" CACHE STRING
                         "Choice of equation system (lienarscalaradvection/navierstokes/mhd/maxwell)" )

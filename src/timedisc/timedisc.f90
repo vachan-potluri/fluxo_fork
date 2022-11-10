@@ -66,6 +66,10 @@ CALL prms%CreateIntOption(   'maxIter',        "Stop simulation when specified n
 CALL prms%CreateIntOption(   'maxWCT',        " maximum wall-clock time in seconds, only checked after maxIter is reached! \n"//&
                                               " Then if WCT<maxWCT, maxIter is set such that  maxWCT is reached.", value ='-1')
 CALL prms%CreateIntOption(   'NCalcTimeStepMax',"Compute dt at least after every Nth timestep.", value='1')
+#if FLUXO_LOCAL_STEPPING
+CALL prms%CreateRealOption(  'TLocalStart',     "Time at which local stepping has to be started", "0.0")
+CALL prms%CreateRealOption(  'LocalStepCapFactor', "The local time step is capped to this factor times the global step", "100.0")
+#endif
 END SUBROUTINE DefineParametersTimeDisc
 
 !==================================================================================================================================
@@ -111,6 +115,12 @@ SWRITE(UNIT_stdOut,'(A)') ' INIT TIMEDISC...'
 
 ! Read the end time TEnd from ini file
 TEnd     = GETREAL('TEnd')
+
+#if FLUXO_LOCAL_STEPPING
+TLocalStart = GETREAL('TLocalStart',"0.0")
+LocalStepCapFactor = GETREAL('LocalStepCapFactor',"100.0")
+#endif
+
 ! Read the normalized CFL number
 CFLScale = GETREAL('CFLScale')
 #if PARABOLIC
@@ -427,7 +437,7 @@ USE MOD_PreProc
 USE MOD_Vector
 USE MOD_DG           ,ONLY: DGTimeDerivative
 USE MOD_DG_Vars      ,ONLY: U,Ut,nTotalU
-USE MOD_TimeDisc_Vars,ONLY: dt,RKA,RKb,RKc,nRKStages,CurrentStage
+USE MOD_TimeDisc_Vars,ONLY: dt,RKA,RKb,RKc,nRKStages
 USE MOD_Mesh_Vars    ,ONLY: nElems
 #if NFVSE_CORR
 use MOD_NFVSE                 , only: Apply_NFVSE_Correction
@@ -435,6 +445,9 @@ use MOD_NFVSE                 , only: Apply_NFVSE_Correction
 #if POSITIVITYPRES
 USE MOD_Positivitypreservation, ONLY: MakeSolutionPositive
 #endif /*POSITIVITYPRES*/
+#if FLUXO_LOCAL_STEPPING
+USE MOD_TimeDisc_Vars, ONLY: dtElem,tLocalStart,LocalStepCapFactor
+#endif
 IMPLICIT NONE
 !-----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT/OUTPUT VARIABLES
@@ -444,30 +457,45 @@ REAL,INTENT(IN)  :: t                                     !< current simulation 
 REAL     :: Ut_temp(1:PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems) ! temporal variable for Ut
 REAL     :: tStage,b_dt(1:nRKStages)
 INTEGER  :: iStage
+#if FLUXO_LOCAL_STEPPING
+integer :: i,j,k,iElem
+real :: localStep
+#endif
 !===================================================================================================================================
 ! Premultiply with dt
 b_dt=RKb*dt
 
-! First evaluation of DG operator already done in timedisc
-CurrentStage=1
-tStage=t
-CALL DGTimeDerivative(tStage)
-CALL VCopy(nTotalU,Ut_temp,Ut)               !Ut_temp = Ut
-CALL VAXPBY(nTotalU,U,Ut,ConstIn=b_dt(1))    !U       = U + Ut*b_dt(1)
-#if NFVSE_CORR
-call Apply_NFVSE_Correction(U,Ut,t,b_dt(1))
-#endif /*NFVSE_CORR*/
-#if POSITIVITYPRES
-CALL MakeSolutionPositive(U)
-#endif /*POSITIVITYPRES*/
-
-! Following steps
-DO iStage=2,nRKStages
-  CurrentStage=iStage
-  tStage=t+dt*RKc(iStage)
+! RK stages
+DO iStage=1,nRKStages
+  if (iStage .EQ. 1) then
+    tStage = t
+  else
+    tStage=t+dt*RKc(iStage)
+  end if
   CALL DGTimeDerivative(tStage)
-  CALL VAXPBY(nTotalU,Ut_temp,Ut,ConstOut=-RKA(iStage)) !Ut_temp = Ut - Ut_temp*RKA(iStage)
+  if (iStage .EQ. 1) then
+    CALL VCopy(nTotalU, Ut_temp, Ut) !Ut_temp = Ut
+  else
+    CALL VAXPBY(nTotalU,Ut_temp,Ut,ConstOut=-RKA(iStage)) !Ut_temp = Ut - Ut_temp*RKA(iStage)
+  end if
+#if FLUXO_LOCAL_STEPPING
+  ! activate local stepping if simulation time exceeds user given start time for local stepping
+  IF(t.GE.tLocalStart) THEN
+    DO iElem=1,nElems
+      ! cap the time step to a factor of the global time step
+      LocalStep = MIN(dtElem(iElem),dt*LocalStepCapFactor)
+      DO k=0,PP_N
+        DO j=0,PP_N
+          DO i=0,PP_N
+            U(:,i,j,k,iElem) = U(:,i,j,k,iElem) + Ut_temp(:,i,j,k,iElem)*RKb(iStage)*localStep
+          END DO !k
+        END DO !j
+      END DO !i
+    END DO !iElem
+  END IF
+#else
   CALL VAXPBY(nTotalU,U,Ut_temp,ConstIn =b_dt(iStage))  !U       = U + Ut_temp*b_dt(iStage)
+#endif
 #if NFVSE_CORR
   call Apply_NFVSE_Correction(U,Ut,t,b_dt(iStage))
 #endif /*NFVSE_CORR*/
@@ -475,7 +503,6 @@ DO iStage=2,nRKStages
   CALL MakeSolutionPositive(U)
 #endif /*POSITIVITYPRES*/
 END DO
-CurrentStage=1
 
 END SUBROUTINE TimeStepByLSERKW2
 

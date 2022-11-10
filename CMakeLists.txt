@@ -88,6 +88,8 @@ OPTION(FLUXO_PARABOLIC "Enable parabolic terms of equation-system" OFF)
 OPTION(FLUXO_SHOCKCAPTURE "Enable shock capturing for non-linear equations" OFF)
 OPTION(FLUXO_POSITIVITYPRES "Enable positivity preservation for non-linear equations" OFF)
 
+OPTION(FLUXO_LOCAL_STEPPING "Use local time stepping for accelerating steady state convergence" OFF)
+
 SET(   FLUXO_EQNSYSNAME "navierstokes" CACHE STRING
                         "Choice of equation system (lienarscalaradvection/navierstokes/mhd/maxwell)" )
 SET_PROPERTY(CACHE FLUXO_EQNSYSNAME PROPERTY STRINGS ${EQNSYSTEMS})
@@ -141,6 +143,10 @@ IF(FLUXO_JESSE_MORTAR)
   IF(NOT FLUXO_DISCTYPE EQUAL 2)
     MESSAGE(SEND_ERROR " JESSE_MORTAR ONLY with Split form discretization (DiscType=2)!")
   ENDIF()
+ENDIF()
+
+IF(FLUXO_LOCAL_STEPPING)
+  ADD_DEFINITIONS(-DFLUXO_LOCAL_STEPPING=1)
 ENDIF()
 
 # Enable or disable unit tests

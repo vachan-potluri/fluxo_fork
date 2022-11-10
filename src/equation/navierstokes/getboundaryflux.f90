@@ -212,7 +212,8 @@ USE MOD_Lifting_Vars ,ONLY: gradPx_Master,gradPy_Master,gradPz_Master
 USE MOD_Flux         ,ONLY: EvalDiffFlux3D,EvalDiffFlux1D_Outflow
 #endif /*PARABOLIC*/
 #if FLUXO_HYPERSONIC
-USE MOD_NFVSE_Vars   ,ONLY: alpha_vis_Master
+USE MOD_NFVSE_Vars   ,ONLY: alpha_vis
+USE MOD_Mesh_Vars    ,ONLY: SideToElem
 #endif
 USE MOD_Testcase_GetBoundaryFlux, ONLY: TestcaseGetBoundaryFlux
 IMPLICIT NONE
@@ -260,7 +261,8 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                    NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID) &
+                   ! use alpha_vis directly because alpha_vis_Master is not prolonged to BC sides
+                   , alpha_vis(SideToElem(S2E_ELEM_ID,SideID)) &
 #endif
                    )
     END DO !iSide=1,nBCloc
@@ -282,7 +284,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                      NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID) &
+                   , alpha_vis(SideToElem(S2E_ELEM_ID,SideID)) &
 #endif
                    )
       END DO !iSide=1,nBCloc
@@ -302,7 +304,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                      NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID) &
+                   , alpha_vis(SideToElem(S2E_ELEM_ID,SideID)) &
 #endif
                    )
       END DO !iSide=1,nBCloc
@@ -325,7 +327,7 @@ DO iBC=1,nBCs
 #endif /*PARABOLIC*/
                    NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
 #if FLUXO_HYPERSONIC
-                   , alpha_vis_Master(SideID) &
+                   , alpha_vis(SideToElem(S2E_ELEM_ID,SideID)) &
 #endif
                    )
     END DO !iSide=1,nBCloc
@@ -381,7 +383,7 @@ DO iBC=1,nBCs
       ! Sum up Euler and Diffusion Flux
       DO iVar=2,PP_nVar
 #if FLUXO_HYPERSONIC
-        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis_Master(SideID))*( & 
+        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis(SideToElem(S2E_ELEM_ID,SideID)))*( & 
                                 NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
                                 NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
                                 NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:))
@@ -458,7 +460,7 @@ DO iBC=1,nBCs
       ! Sum up Euler and Diffusion Flux
       DO iVar=2,PP_nVar
 #if FLUXO_HYPERSONIC
-        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis_Master(SideID))*( & 
+        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis(SideToElem(S2E_ELEM_ID,SideID)))*( & 
                                 NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
                                 NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
                                 NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:))
@@ -524,7 +526,7 @@ DO iBC=1,nBCs
       CALL EvalDiffFlux1D_Outflow (Fd_Face_loc,U_Face_loc,gradVel)
       ! Sum up Euler and Diffusion Flux and tranform back into Cartesian system
 #if FLUXO_HYPERSONIC
-      Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + (1-alpha_vis_Master(SideID))*Fd_Face_loc
+      Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + (1-alpha_vis(SideToElem(S2E_ELEM_ID,SideID)))*Fd_Face_loc
 #else
       Flux(:,:,:,SideID) = Flux(:,:,:,SideID) + Fd_Face_loc
 #endif /*FLUXO_HYPERSONIC*/

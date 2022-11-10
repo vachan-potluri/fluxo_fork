@@ -229,7 +229,7 @@ SUBROUTINE VolInt_visc(Ut)
 !----------------------------------------------------------------------------------------------------------------------------------
 ! MODULES
 USE MOD_PreProc
-USE MOD_DG_Vars      ,ONLY:Dsurf_T,U
+USE MOD_DG_Vars      ,ONLY:D_Hat_T,U
 USE MOD_Lifting_Vars ,ONLY:gradPx,gradPy,gradPz
 USE MOD_Flux         ,ONLY:EvalDiffFluxTilde3D
 USE MOD_Mesh_Vars    ,ONLY:nElems,metrics_ftilde,metrics_gtilde,metrics_htilde
@@ -267,13 +267,13 @@ DO iElem=1,nElems
     DO l=0,PP_N
 #if FLUXO_HYPERSONIC
       Ut(:,i,j,k,iElem) = Ut(:,i,j,k,iElem) + (1-alpha_vis(iElem))*( &
-                                                 Dsurf_T(l,i)*ftildeDiff(:,l,j,k)  &
-                                            +    Dsurf_T(l,j)*gtildeDiff(:,i,l,k)  &
-                                            +    Dsurf_T(l,k)*htildeDiff(:,i,j,l))
+                                                 D_Hat_T(l,i)*ftildeDiff(:,l,j,k)  &
+                                            +    D_Hat_T(l,j)*gtildeDiff(:,i,l,k)  &
+                                            +    D_Hat_T(l,k)*htildeDiff(:,i,j,l))
 #else
-      Ut(:,i,j,k,iElem) = Ut(:,i,j,k,iElem) +    Dsurf_T(l,i)*ftildeDiff(:,l,j,k)  &
-                                            +    Dsurf_T(l,j)*gtildeDiff(:,i,l,k)  &
-                                            +    Dsurf_T(l,k)*htildeDiff(:,i,j,l)
+      Ut(:,i,j,k,iElem) = Ut(:,i,j,k,iElem) +    D_Hat_T(l,i)*ftildeDiff(:,l,j,k)  &
+                                            +    D_Hat_T(l,j)*gtildeDiff(:,i,l,k)  &
+                                            +    D_Hat_T(l,k)*htildeDiff(:,i,j,l)
 #endif
     END DO ! l
   END DO; END DO; END DO ! i,j,k

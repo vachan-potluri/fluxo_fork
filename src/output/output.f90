@@ -206,6 +206,9 @@ nOutvars = nOutvars + 1
 #if FLUXO_HYPERSONIC
 nOutvars = nOutvars + 1
 #endif
+#if FLUXO_OUTPUT_VISCOUS
+nOutVars = nOutVars + 9
+#endif
 allocate(strvarnames_tmp(nOutVars))
 
 ! Set the default names
@@ -228,6 +231,28 @@ strvarnames_tmp(nVars) = 'BlendingFunction_old'
 #if FLUXO_HYPERSONIC
 nVars = nVars+1
 strvarnames_tmp(nVars) = 'BlendingFunction_vis'
+#endif
+
+#if FLUXO_OUTPUT_VISCOUS
+! visualise viscous stresses and heat fluxes
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressXX"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressXY"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressXZ"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressYY"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressYZ"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "ShearStressZZ"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "HeatFluxX"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "HeatFluxY"
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "HeatFluxZ"
 #endif
 
 
@@ -281,7 +306,11 @@ END SUBROUTINE PrintStatusLine
 !> Supersample DG dataset at (equidistant) visualization points and output to file.
 !> Currently only Paraview binary format is supported.
 !==================================================================================================================================
-SUBROUTINE Visualize(OutputTime,Uin,FileTypeStrIn,PrimVisuOpt,StrVarNames_opt)
+SUBROUTINE Visualize(OutputTime,Uin, &
+#if FLUXO_OUTPUT_VISCOUS
+                     gradPx_in, gradPy_in, gradPz_in, &
+#endif
+                     FileTypeStrIn,PrimVisuOpt,StrVarNames_opt)
 ! MODULES
 USE MOD_Globals
 USE MOD_PreProc
@@ -302,6 +331,10 @@ use MOD_NFVSE_Vars ,only: alpha_old
 #if FLUXO_HYPERSONIC
 use MOD_NFVSE_Vars, only: alpha_vis
 #endif
+#if FLUXO_OUTPUT_VISCOUS
+use MOD_DG_Vars, only: nTotal_IP
+use MOD_Equation_Vars, only: ViscousQuantities
+#endif
 USE MOD_Output_Vars,ONLY:OutputFormat
 USE MOD_Mesh_Vars  ,ONLY:Elem_xGP,nElems
 USE MOD_Output_Vars,ONLY:NVisu,Vdm_GaussN_NVisu, strvarnames_tmp, nOutVars, PrimVisuDefault
@@ -311,6 +344,11 @@ IMPLICIT NONE
 ! INPUT/OUTPUT VARIABLES
 REAL,INTENT(IN)               :: OutputTime               !< simulation time of output
 REAL,INTENT(IN)               :: Uin(PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems) !< solution vector to be visualized
+#if FLUXO_OUTPUT_VISCOUS
+real, intent(in) :: gradPx_in(PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems), &
+                    gradPy_in(PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems), &
+                    gradPz_in(PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems)
+#endif
 CHARACTER(LEN=255),OPTIONAL,INTENT(IN) :: FileTypeStrIn
 LOGICAL,OPTIONAL,INTENT(IN) :: PrimVisuOpt
 CHARACTER(LEN=255),OPTIONAL,INTENT(IN) :: StrVarNames_Opt(PP_nVar)
@@ -396,6 +434,9 @@ DO iElem=1,nElems
   U_NVisu(nVars,:,:,:,iElem) = alpha_vis(iElem)
 #endif
 END DO !iElem
+#if FLUXO_OUTPUT_VISCOUS
+  CALL ViscousQuantities(nTotal_IP, Uin, gradPx_in, gradPy_in, gradPz_in, U_Nvisu(nVars+1:nVars+9,:,:,:,:))
+#endif
 CALL VisualizeAny(OutputTime,nOutvars,Nvisu,.FALSE.,Coords_Nvisu,U_Nvisu,FileTypeStr,strvarnames_tmp)
 DEALLOCATE(U_NVisu)
 DEALLOCATE(Coords_NVisu) 

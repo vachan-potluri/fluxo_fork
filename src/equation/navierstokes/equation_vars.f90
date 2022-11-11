@@ -200,6 +200,11 @@ INTERFACE muSuth
 END INTERFACE
 #endif /*PP_VISC==1*/
 
+INTERFACE ViscousQuantities_
+  MODULE PROCEDURE ViscousQuantities
+END INTERFACE
+Public :: ViscousQuantities
+
 #endif /*PARABOLIC*/
 
 CONTAINS
@@ -691,6 +696,66 @@ ELSE
 END IF
 END FUNCTION muSuth
 #endif
+
+! calculates viscous stresses and heat fluxes
+SUBROUTINE ViscousQuantities(dim2, U, gradPx, gradPy, gradPz, stress_flux)
+  IMPLICIT NONE
+  integer, intent(in) :: dim2
+  ! conservative variables and primitive variable gradients
+  real, intent(in) :: U(5,dim2), gradPx(5,dim2), gradPy(5,dim2), gradPz(5,dim2)
+  ! viscous stresses (6) and heat fluxes (3)
+  real, intent(out) :: stress_flux(9,dim2)
+  real :: sRho, v1, v2, v3, p, T, muS, lambda, divv, cv_gradTx, cv_gradTy, cv_gradTz
+  integer :: i
+  DO i=1,dim2
+    ASSOCIATE(rho   =>U(1,i), &
+              rhov1 =>U(2,i), &
+              rhov2 =>U(3,i), &
+              rhov3 =>U(4,i), &
+              rhoE  =>U(5,i), & 
+              gradv1x => gradPx(2,i), & 
+              gradv2x => gradPx(3,i), & 
+              gradv3x => gradPx(4,i), & 
+              gradv1y => gradPy(2,i), & 
+              gradv2y => gradPy(3,i), & 
+              gradv3y => gradPy(4,i), & 
+              gradv1z => gradPz(2,i), & 
+              gradv2z => gradPz(3,i), & 
+              gradv3z => gradPz(4,i))
+    srho = 1./rho
+    v1   = rhov1*srho 
+    v2   = rhov2*srho 
+    v3   = rhov3*srho 
+
+    p    = kappaM1*(rhoE - 0.5*(rhov1*v1+rhov2*v2+rhov3*v3))
+#if PP_VISC == 0
+    muS=mu0 ! Constant mu
+#elif PP_VISC == 1
+    T=p*srho/R ! Calculate temperature
+    muS=muSuth(T) ! compute viscosity with Sutherlands law
+#elif PP_VISC == 2
+    T=p*srho/R ! Calculate temperature
+    muS=mu0*T**ExpoPow  ! mu0=mu0/T0^n: compute vsicosity using the power-law
+#endif
+    
+    ! Conductivity
+    lambda=muS*KappasPr
+    divv       = gradv1x+gradv2y+gradv3z
+    stress_flux(1,i) = muS*(2*gradv1x - s23*divv) ! tau_xx
+    stress_flux(2,i) = muS*(gradv2x + gradv1y) ! tau_xy
+    stress_flux(3,i) = muS*(gradv3x + gradv1z) ! tau_xz
+    stress_flux(4,i) = muS*(2*gradv2y- s23*divv) ! tau_yy
+    stress_flux(5,i) = muS*(gradv3y + gradv2y) ! tau_yz
+    stress_flux(6,i) = muS*(2*gradv3z- s23*divv) ! tau_zz
+    cv_gradTx  = sKappaM1*sRho*(gradPx(5,i)-srho*p*gradPx(1,i))  ! cv*T_x = 1/(kappa-1) *1/rho *(p_x - p/rho*rho_x)
+    cv_gradTy  = sKappaM1*sRho*(gradPy(5,i)-srho*p*gradPy(1,i)) 
+    cv_gradTz  = sKappaM1*sRho*(gradPz(5,i)-srho*p*gradPz(1,i))
+    stress_flux(7,i) = -lambda*cv_gradTx
+    stress_flux(8,i) = -lambda*cv_gradTy
+    stress_flux(9,i) = -lambda*cv_gradTz
+    END ASSOCIATE
+  END DO ! i
+END SUBROUTINE ViscousQuantities
 #endif /*PARABOLIC*/
 
 !==================================================================================================================================

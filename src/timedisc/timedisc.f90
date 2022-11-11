@@ -175,6 +175,9 @@ USE MOD_AMR_tracking        ,ONLY: PerformAMR,InitData,InitialAMRRefinement
 USE MOD_AMR_Vars            ,ONLY: UseAMR, nWriteDataAMR, nDoAMR, nDoAMRShift
 USE MOD_AMR                 ,ONLY: WriteStateAMR
 #endif
+#if FLUXO_OUTPUT_VISCOUS
+use MOD_Lifting_Vars, only: gradPx, gradPy, gradPz
+#endif
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT/OUTPUT VARIABLES
@@ -231,7 +234,11 @@ CALL DGTimeDerivative(t)
 IF(nWriteData.GT.0) THEN
   CALL WriteState(OutputTime=t, FutureTime=tWriteData,isErrorFile=.FALSE.)
 
-  CALL Visualize(t,U)
+  CALL Visualize(t,U &
+#if FLUXO_OUTPUT_VISCOUS
+                 , gradPx, gradPy, gradPz &
+#endif
+                )
 #if USE_AMR
   IF (UseAMR) THEN
     IF(nWriteDataAMR .GT. 0) THEN
@@ -376,7 +383,11 @@ IF(nCalcTimestepMax.EQ.1)THEN
     IF(nWriteData.GT.0) THEN
       IF((writeCounter.EQ.nWriteData).OR.doFinalize)THEN
         ! Visualize data
-        CALL Visualize(t,U)
+        CALL Visualize(t,U &
+#if FLUXO_OUTPUT_VISCOUS
+                       , gradPx, gradPy, gradPz &
+#endif
+                      )
         ! Write state to file
         CALL WriteState(OutputTime=t,FutureTime=tWriteData,isErrorFile=.FALSE.)
         writeCounter=0

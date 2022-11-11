@@ -233,6 +233,9 @@ USE MOD_TimeDisc_Vars,     ONLY: t
 USE MOD_CalcTimeStep,      ONLY: CalcTimeStep
 USE MOD_HDF5_Input,        ONLY: OpenDataFile,CloseDataFile,ReadAttribute,File_ID
 USE MOD_ReadInTools,       ONLY: GETLOGICAL
+#if FLUXO_OUTPUT_VISCOUS
+use MOD_Lifting_Vars, only: gradPx, gradPy, gradPz
+#endif
 !IMPLICIT NONE
 !!----------------------------------------------------------------------------------------------------------------------------------
 !! LOCAL VARIABLES
@@ -248,7 +251,11 @@ t=RestartTime
 IF(withTimeDeriv)THEN
   dt_Min=CALCTIMESTEP(errType)
   CALL DGTimeDerivative(t)
-  CALL Visualize(t,U)
+  CALL Visualize(t,U &
+#if FLUXO_OUTPUT_VISCOUS
+                 , gradPx, gradPy, gradPz &
+#endif
+                )
 END IF
 CALL Analyze(t,INT(0,8))
 DO iArg=3,nArgs
@@ -267,7 +274,11 @@ DO iArg=3,nArgs
   END IF
   Analyze_dt=t-Old_t
   CALL Analyze(t,INT(iArg-2,8))
-  CALL Visualize(t,U)
+  CALL Visualize(t,U &
+#if FLUXO_OUTPUT_VISCOUS
+                 , gradPx, gradPy, gradPz &
+#endif
+                )
 END DO
 END SUBROUTINE AnalyzeAllStates
 

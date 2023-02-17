@@ -119,7 +119,10 @@ contains
     ! Local variables
     !---------------------------------------------------------------------------------------------------------------------------------
     real, dimension(1:1,0:PP_N,0:PP_N,0:PP_N) :: Uind,Umod
-    real                                      :: LU,LUM1,LUM2,LU_N,LU_NM1
+    real                                      :: LU,LUM1,LU_N
+#ifndef FLUXO_PERSSON_UNMODIFIED
+    real                                      :: LUM2,LU_NM1
+#endif
     integer                                   :: eID
     !---------------------------------------------------------------------------------------------------------------------------------
     
@@ -133,12 +136,18 @@ contains
       ! Compute (truncated) error norms
       LU     = SUM(Umod(1,0:PP_N  ,0:PP_N  ,0:PP_N  )**2)
       LUM1   = SUM(Umod(1,0:PP_N-1,0:PP_N-1,0:PP_N-1)**2)
-      LUM2   = SUM(Umod(1,0:PP_N-2,0:PP_N-2,0:PP_N-2)**2)
       LU_N   = LU-LUM1
+#ifndef FLUXO_PERSSON_UNMODIFIED
+      LUM2   = SUM(Umod(1,0:PP_N-2,0:PP_N-2,0:PP_N-2)**2)
       LU_NM1 = LUM1-LUM2
+#endif
   
       ! DOF energy indicator
+#if FLUXO_PERSSON_UNMODIFIED
+      eta(eID) = LU_N/LU
+#else
       eta(eID) = MAX(LU_N/LU,LU_NM1/LUM1)
+#endif
       
     end do
     

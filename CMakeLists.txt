@@ -90,6 +90,8 @@ OPTION(FLUXO_POSITIVITYPRES "Enable positivity preservation for non-linear equat
 
 OPTION(FLUXO_LOCAL_STEPPING "Use local time stepping in TimeStepByLSERKW2() for accelerating steady state convergence" OFF)
 
+OPTION(FLUXO_PERSSON_UNMODIFIED "Use the original version of Persson's indicator, without Hennemenn's modification" OFF)
+
 SET(   FLUXO_EQNSYSNAME "navierstokes" CACHE STRING
                         "Choice of equation system (lienarscalaradvection/navierstokes/mhd/maxwell)" )
 SET_PROPERTY(CACHE FLUXO_EQNSYSNAME PROPERTY STRINGS ${EQNSYSTEMS})
@@ -147,6 +149,10 @@ ENDIF()
 
 IF(FLUXO_LOCAL_STEPPING)
   ADD_DEFINITIONS(-DFLUXO_LOCAL_STEPPING=1)
+ENDIF()
+
+IF(FLUXO_PERSSON_UNMODIFIED)
+  ADD_DEFINITIONS(-DFLUXO_PERSSON_UNMODIFIED=1)
 ENDIF()
 
 # Enable or disable unit tests

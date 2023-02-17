@@ -366,6 +366,9 @@ REAL                          :: cons(PP_nVar)
 #endif
 INTEGER                       :: i,j,k
 integer                       :: nVars
+#if FLUXO_OUTPUT_VISCOUS
+real                          :: viscous_quantities_elem(9,0:PP_N,0:PP_N,0:PP_N,1:nElems)
+#endif
 !==================================================================================================================================
 IF(outputFormat.LE.0) RETURN
 
@@ -435,7 +438,12 @@ DO iElem=1,nElems
 #endif
 END DO !iElem
 #if FLUXO_OUTPUT_VISCOUS
-  CALL ViscousQuantities(nTotal_IP, Uin, gradPx_in, gradPy_in, gradPz_in, U_Nvisu(nVars+1:nVars+9,:,:,:,:))
+  ! get viscous quantities on GL nodes
+  CALL ViscousQuantities(nTotal_IP, Uin, gradPx_in, gradPy_in, gradPz_in, viscous_quantities_elem)
+  ! interpolate viscous quantities to required output nodes (visu grid)
+  DO iElem=1,nElems
+    CALL ChangeBasis3D(9,PP_N,NVisu,Vdm_GaussN_NVisu,viscous_quantities_elem(:,:,:,:,iElem),U_NVisu(nVars+1:nVars+9,:,:,:,iElem))
+  END DO
 #endif
 CALL VisualizeAny(OutputTime,nOutvars,Nvisu,.FALSE.,Coords_Nvisu,U_Nvisu,FileTypeStr,strvarnames_tmp)
 DEALLOCATE(U_NVisu)

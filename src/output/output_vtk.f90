@@ -384,7 +384,7 @@ IF(singleFile)THEN
 ELSE
   !every processor writes his own file
   writeToFile=(nElems.GT.0)
-  FileString=TRIM(INTSTAMP(TRIM(FileString_in),myRank))//'_.vtu'
+  FileString=TRIM(INTSTAMP(TRIM(FileString_in),myRank))//'.vtu'
   nElems_glob(0) = nElems
   nGlobalElems_loc=nElems
 END IF !singlefile

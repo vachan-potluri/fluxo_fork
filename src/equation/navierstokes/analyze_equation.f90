@@ -65,6 +65,7 @@ CALL prms%CreateLogicalOption('CalcWallVelocity', "Set true to compute min/max/m
                                                 , '.FALSE.')
 CALL prms%CreateLogicalOption('CalcEntropy', "Set true to compute the integrated entropy"&
            , '.FALSE.')
+CALL prms%CreateLogicalOption('CalcResiduals'    , "Set true to compute residuals"                    , '.FALSE.')
 END SUBROUTINE DefineParametersAnalyzeEquation
 
 !==================================================================================================================================
@@ -78,6 +79,9 @@ USE MOD_Analyze_Vars
 USE MOD_AnalyzeEquation_Vars
 USE MOD_ReadInTools,        ONLY: GETLOGICAL
 USE MOD_Mesh_Vars,          ONLY: BoundaryName,nBCs,BoundaryType
+USE MOD_Output,             ONLY: InitOutputToFile
+USE MOD_Output_Vars,        ONLY: ProjectName
+USE MOD_Equation_Vars,      ONLY: StrVarNamesPrim,StrVarNames
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
 ! OUTPUT VARIABLES
@@ -90,6 +94,7 @@ doCalcBodyForces    =GETLOGICAL('CalcBodyForces','.FALSE.')
 doCalcBulkVelocity  =GETLOGICAL('CalcBulkVelocity','.FALSE.')
 doCalcWallVelocity  =GETLOGICAL('CalcWallVelocity','.FALSE.')
 doCalcEntropy       = GETLOGICAL('CalcEntropy'   ,'.FALSE.')
+doCalcResiduals     =GETLOGICAL('CalcResiduals'    ,'.FALSE.')
 
 ! Initialize eval routines
 IF(doCalcWallVelocity) ALLOCATE(meanV(nBCs),maxV(nBCs),minV(nBCs))
@@ -128,6 +133,10 @@ IF(MPIroot.AND.doAnalyzeToFile) THEN
     A2F_iVar=A2F_iVar+1
     A2F_VarNames(A2F_iVar)='"dSdU_Ut"'
   END IF !doCalcEntropy
+  IF(doCalcResiduals)THEN
+    FileName_Residuals = TRIM(ProjectName)//'_Residuals'
+    CALL InitOutputToFile(FileName_Residuals,'Residuals',PP_nVar,StrVarNames)
+  END IF
 END IF !MPIroot & doAnalyzeToFile
 END SUBROUTINE InitAnalyzeEquation
 
@@ -143,6 +152,7 @@ USE MOD_Analyze_Vars
 USE MOD_AnalyzeEquation_Vars
 USE MOD_Restart_Vars,       ONLY: RestartTime
 USE MOD_Mesh_Vars,          ONLY: BoundaryName,nBCs,BoundaryType
+USE MOD_Output,             ONLY: OutputToFile
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
 ! INPUT VARIABLES
@@ -156,6 +166,7 @@ REAL                            :: Fv(3),Fp(3),BodyForce(3) ! Viscous force, pre
 REAL                            :: bulkVel(3),bulkDensity,bulkMom(3)
 REAL                            :: tmp(1),dSdU_Ut 
 INTEGER                         :: i
+REAL                            :: Residuals(PP_nVar)
 !==================================================================================================================================
 ! Attention: during the initialization phase no face data / gradients available!
 IF(doCalcBodyforces)THEN
@@ -236,6 +247,15 @@ IF(doCalcEntropy)THEN
   END IF !MPIroot
 END IF !doCalcEntropy
 !
+
+IF(doCalcResiduals)THEN
+  CALL CalcResiduals(Residuals)
+  IF(MPIROOT) THEN
+    CALL OutputToFile(FileName_Residuals,(/Time/),(/PP_nVar,1/),Residuals)
+    WRITE(formatStr,'(A,I2,A)')'(A14,',PP_nVar,'ES18.9)'
+    WRITE(UNIT_stdOut,formatStr)' Residuals Cons  : ',Residuals
+  END IF
+END IF
 END SUBROUTINE AnalyzeEquation
 
 
@@ -597,6 +617,49 @@ Entropy=Entropy*sKappaM1
 
 
 END SUBROUTINE CalcEntropy
+
+
+!==================================================================================================================================
+!> Calculates residuals over whole domain
+!==================================================================================================================================
+SUBROUTINE CalcResiduals(Residuals)
+! MODULES
+USE MOD_Globals
+USE MOD_PreProc
+USE MOD_Analyze_Vars,       ONLY: wGPVol,Vol
+USE MOD_Mesh_Vars,          ONLY: sJ,nElems
+USE MOD_DG_Vars,            ONLY: Ut
+IMPLICIT NONE
+!----------------------------------------------------------------------------------------------------------------------------------
+! INPUT/OUTPUT VARIABLES
+REAL,INTENT(OUT)                :: Residuals(PP_nVar)                   !> Conservative residuals
+!----------------------------------------------------------------------------------------------------------------------------------
+! LOCAL VARIABLES
+REAL                            :: IntegrationWeight
+INTEGER                         :: iElem,i,j,k
+#if FV_ENABLED
+REAL                            :: FV_w_volume
+#endif
+!==================================================================================================================================
+Residuals=0.
+DO iElem=1,nElems
+    DO k=0,PP_N; DO j=0,PP_N; DO i=0,PP_N
+      IntegrationWeight=wGPVol(i,j,k)/sJ(i,j,k,iElem)
+      Residuals = Residuals + Ut(:,i,j,k,iElem)**2*IntegrationWeight
+    END DO; END DO; END DO !i,j,k
+END DO ! iElem
+
+#if USE_MPI
+IF(MPIRoot)THEN
+  CALL MPI_REDUCE(MPI_IN_PLACE,Residuals,PP_nVar,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,iError)
+ELSE
+  CALL MPI_REDUCE(Residuals         ,0  ,PP_nVar,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,iError)
+END IF
+#endif
+
+Residuals=SQRT(Residuals/Vol)
+
+END SUBROUTINE CalcResiduals
 
 
 !==================================================================================================================================

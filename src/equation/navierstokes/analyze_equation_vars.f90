@@ -32,6 +32,8 @@ LOGICAL              :: doCalcBulkVelocity
 LOGICAL              :: doCalcWallVelocity
 LOGICAL              :: doCalcBodyForces
 LOGICAL              :: doCalcEntropy
+LOGICAL              :: doCalcResiduals     =.FALSE.      !< marks if residuals shall be computed
+CHARACTER(LEN=255)   :: Filename_Residuals                !< output file  for residuals
 
 ! Variables for the specific analyze routines
 ! WallVelocity

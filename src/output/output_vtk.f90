@@ -346,7 +346,7 @@ IF(nProcessors.EQ.1) singleFile=.TRUE. !overwrite input if only 1 proc is used!
 IF(SingleFile)THEN
   SWRITE(UNIT_stdOut,'(A)',ADVANCE='NO')'  WRITE DATA TO SINGLE XML BINARY (VTU) FILE "'//TRIM(FileString_in)//'.vtu" ...'
 ELSE
-  SWRITE(UNIT_stdOut,'(A)',ADVANCE='NO')'  WRITE DATA TO MULTIPLE XML BINARY (VTU) FILES "'//TRIM(FileString_in)//'_Proc*_.vtu" ...'
+  SWRITE(UNIT_stdOut,'(A)',ADVANCE='NO')'  WRITE DATA TO MULTIPLE XML BINARY (VTU) FILES "'//TRIM(FileString_in)//'_Proc*.vtu" ...'
 END IF
 #else
 SWRITE(UNIT_stdOut,'(A)',ADVANCE='NO')'  WRITE DATA TO SINGLE XML BINARY (VTU) FILE "'//TRIM(FileString_in)//'.vtu" ...'
@@ -670,7 +670,7 @@ IF((.NOT.SingleFile).AND.(MPIroot))THEN
   ! Link files
   DO iProc=0,nProcessors-1
     IF(nElems_glob(iProc).EQ.0) CYCLE      
-    FileString=TRIM(INTSTAMP(TRIM(FileString_in),iProc))//'_.vtu'
+    FileString=TRIM(INTSTAMP(TRIM(FileString_in),iProc))//'.vtu'
     Buffer='    <Piece Source="'//TRIM(FileString)//'"/>'//lf;WRITE(ivtk) TRIM(Buffer)
   END DO
   ! Write footer

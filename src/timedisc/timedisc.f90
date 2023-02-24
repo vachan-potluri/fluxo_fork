@@ -503,6 +503,8 @@ DO iStage=1,nRKStages
         END DO !j
       END DO !i
     END DO !iElem
+  ELSE
+    CALL VAXPBY(nTotalU,U,Ut_temp,ConstIn =b_dt(iStage))  !U       = U + Ut_temp*b_dt(iStage)
   END IF
 #else
   CALL VAXPBY(nTotalU,U,Ut_temp,ConstIn =b_dt(iStage))  !U       = U + Ut_temp*b_dt(iStage)

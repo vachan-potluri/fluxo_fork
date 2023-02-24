@@ -384,6 +384,9 @@ use MOD_NFVSE_Vars,         ONLY: alpha
 use MOD_NFVSE_Vars,         ONLY: maximum_alpha, amount_alpha, amount_alpha_steps
 USE MOD_Mesh_Vars,          ONLY: nElems
 #endif /*NFVSE_CORR*/
+#if FLUXO_LOCAL_STEPPING
+use MOD_TimeDisc_Vars,      ONLY: tLocalStart
+#endif
 ! IMPLICIT VARIABLE HANDLING
 IMPLICIT NONE
 !----------------------------------------------------------------------------------------------------------------------------------
@@ -410,7 +413,9 @@ REAL                            :: alpha_globmin,alpha_globmax,alpha_globavg
 CalcTime=FLUXOTIME()
 SWRITE(UNIT_StdOut,'(A14,ES16.7)')' Sim time   : ',Time
 #if FLUXO_LOCAL_STEPPING
-SWRITE(UNIT_StdOut,*)'Using local time stepping!'
+IF(Time .gt. tLocalStart) THEN
+  SWRITE(UNIT_StdOut,*)'Using local time stepping!'
+END IF
 #endif
 
 IF(MPIroot.AND.doAnalyzeToFile) THEN

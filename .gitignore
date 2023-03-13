@@ -33,7 +33,7 @@
 *.sh
 
 # others
-build
+build*
 share
 doc/ford/out
 .DS_*

@@ -680,16 +680,17 @@ ENDIF()
 
 # Download function parser files from https://github.com/jacobwilliams/fortran_function_parser/tree/3967575aaa3951b42c94c456537f282d2f84875a/src (tag "1.1.0")
 IF(FLUXO_HYPERSONIC)
-  FILE(
-    DOWNLOAD
-    https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/function_parser.f90
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/function_parser.f90
-  )
-  FILE(
-    DOWNLOAD
-    https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/error_module.f90
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/error_module.f90
-  )
+  # 13-Mar-2023: For some reason, this is overwriting existing files with blank files.
+  # FILE(
+  #   DOWNLOAD
+  #   https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/function_parser.f90
+  #   ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/function_parser.f90
+  # )
+  # FILE(
+  #   DOWNLOAD
+  #   https://raw.githubusercontent.com/jacobwilliams/fortran_function_parser/3967575aaa3951b42c94c456537f282d2f84875a/src/error_module.f90
+  #   ${CMAKE_CURRENT_SOURCE_DIR}/src/function_parser/error_module.f90
+  # )
 ENDIF()
 
 # =========================================================================

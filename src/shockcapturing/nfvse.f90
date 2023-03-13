@@ -536,7 +536,7 @@ contains
 !> Attention 1: 1/J(i,j,k) is not yet accounted for
 !> Attention 2: This routine has to be called after VolInt_adv_SplitForm, since here Ut is updated with the finite volume contribution
 !===================================================================================================================================
-  subroutine VolInt_NFVSE(Ut)
+  subroutine VolInt_NFVSE(Ut,t)
     use MOD_PreProc
     use MOD_DG_Vars            , only: U
     use MOD_Mesh_Vars          , only: nElems, sJ
@@ -554,6 +554,7 @@ contains
     implicit none
     !-arguments---------------------------------------------------------------------------------------------------------------------
     real,intent(inout)                              :: Ut(PP_nVar,0:PP_N,0:PP_N,0:PP_N,1:nElems)
+    real,intent(in),optional                        :: t
     !-local-variables---------------------------------------------------------------------------------------------------------------
     real,dimension(PP_nVar,-1:PP_N, 0:PP_N, 0:PP_N) :: ftilde   ! transformed inter-subcell flux in xi (with ghost cells)
     real,dimension(PP_nVar, 0:PP_N,-1:PP_N, 0:PP_N) :: gtilde   ! transformed inter-subcell flux in eta (with ghost cells)
@@ -1705,7 +1706,7 @@ contains
 !   ---------------------------------------------------
     if (SpacePropSweeps > 0) then
       call ProlongBlendingCoeffToFaces()
-      call PropagateBlendingCoeff() ! also updates alpha_vis
+      call PropagateBlendingCoeff(t) ! also updates alpha_vis
     end if
     call ProlongBlendingCoeffToFaces() ! MPI communication for alpha_vis
     

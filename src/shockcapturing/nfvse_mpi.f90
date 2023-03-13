@@ -84,7 +84,7 @@ contains
 !> -> First the routine makes sure that the MPI communication is done
 !> -> Then, the blending coefficient is set to alpha = max (alpha, alpha_neighbor)
 !===================================================================================================================================
-  subroutine PropagateBlendingCoeff()
+  subroutine PropagateBlendingCoeff(t)
     use MOD_NFVSE_Vars         , only: alpha, alpha_Master, alpha_Slave
     use MOD_Mesh_Vars          , only: firstSlaveSide, LastSlaveSide, SideToElem
     use MOD_Mesh_Vars          , only: firstMortarInnerSide, lastMortarInnerSide, firstMortarMPISide,lastMortarMPISide
@@ -97,6 +97,7 @@ contains
 #endif /*MPI*/
     implicit none
     !-------------------------------------------------------------------------------------------------------------------------------
+    real, optional, intent(in) :: t ! simulation time
     integer :: sideID, ElemID, nbElemID
     real    :: minAlpha (firstSlaveSide:LastSlaveSide)
     integer :: MortarSideID, nMortars, locSide, iMortar
@@ -170,7 +171,7 @@ contains
     ! update viscous blending coefficient
     ! the viscous blending region is generally not a function of time, so this function can
     ! generally be called without any argument
-    call UpdateVisBlendingCoefficient()
+    call UpdateVisBlendingCoefficient(t)
 #endif
   end subroutine
 #if MPI

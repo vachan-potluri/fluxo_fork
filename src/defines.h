@@ -59,7 +59,8 @@
 #  define IPWRITE WRITE
 #  define GETTIME(a) CALL CPU_TIME(a)
 #endif
-#define ERRWRITE(a,b) CALL CreateErrFile(); IF(ErrorFiles) WRITE(UNIT_errOut,b) 
+! #define ERRWRITE(a,b) CALL CreateErrFile(); IF(ErrorFiles) WRITE(UNIT_errOut,b) 
+#define ERRWRITE WRITE
 #define LOGWRITE(a,b) IF(Logging) WRITE(UNIT_logOut,b)
 #define LOGWRITE_BARRIER  IF(Logging) CALL ReOpenLogFile()
 #define SDEALLOCATE(A) IF(ALLOCATED(A)) DEALLOCATE(A)

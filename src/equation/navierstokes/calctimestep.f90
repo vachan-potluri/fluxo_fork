@@ -100,8 +100,8 @@ DO iElem=1,nElems
     DO j=0,PP_N
       DO i=0,PP_N
         ! Convective Eigenvalues
-        IF(IEEE_IS_NAN(U(1,i,j,k,iElem)))THEN
-          ERRWRITE(*,'(A,3ES16.7)')'Density NaN, Position= ',Elem_xGP(:,i,j,k,iElem)
+        IF(IEEE_IS_NAN(U(1,i,j,k,iElem)) .or. U(1,i,j,k,iElem).le.0)THEN
+          ERRWRITE(*,'(A,3ES16.7)')'Density NaN or negative, Position= ',Elem_xGP(:,i,j,k,iElem)
           errType=1
         END IF
         sRho=1./U(1,i,j,k,iElem)

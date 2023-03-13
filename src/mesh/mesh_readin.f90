@@ -660,7 +660,7 @@ do iElem=1,nElems
   do iLocSide=1,6
     aSide=>aElem%Side(iLocSide)%sp
     if(aSide%BCindex .NE. 0) then
-      if(BoundaryType(aSide%BCindex,BC_TYPE).EQ.4) then
+      if(BoundaryType(aSide%BCindex,BC_TYPE).EQ.4 .OR. BoundaryType(aSide%BCindex,BC_TYPE).EQ.3) then
         Elem_at_wall(iElem) = .TRUE.
         EXIT
       end if

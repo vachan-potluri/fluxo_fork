@@ -209,6 +209,9 @@ nOutvars = nOutvars + 1
 #if FLUXO_OUTPUT_VISCOUS
 nOutVars = nOutVars + 9
 #endif
+#if FLUXO_LOCAL_STEPPING
+nOutVars = nOutVars + 1
+#endif
 allocate(strvarnames_tmp(nOutVars))
 
 ! Set the default names
@@ -253,6 +256,11 @@ nVars = nVars + 1
 strvarnames_tmp(nVars) = "HeatFluxY"
 nVars = nVars + 1
 strvarnames_tmp(nVars) = "HeatFluxZ"
+#endif
+
+#if FLUXO_LOCAL_STEPPING
+nVars = nVars + 1
+strvarnames_tmp(nVars) = "dtElem"
 #endif
 
 
@@ -334,6 +342,9 @@ use MOD_NFVSE_Vars, only: alpha_vis
 #if FLUXO_OUTPUT_VISCOUS
 use MOD_DG_Vars, only: nTotal_IP
 use MOD_Equation_Vars, only: ViscousQuantities
+#endif
+#if FLUXO_LOCAL_STEPPING
+use MOD_TimeDisc_Vars, only: dtElem
 #endif
 USE MOD_Output_Vars,ONLY:OutputFormat
 USE MOD_Mesh_Vars  ,ONLY:Elem_xGP,nElems
@@ -444,6 +455,12 @@ END DO !iElem
   DO iElem=1,nElems
     CALL ChangeBasis3D(9,PP_N,NVisu,Vdm_GaussN_NVisu,viscous_quantities_elem(:,:,:,:,iElem),U_NVisu(nVars+1:nVars+9,:,:,:,iElem))
   END DO
+#endif
+#if FLUXO_LOCAL_STEPPING
+  nVars = nVars + 1
+  do ielem=1,nElems
+    U_NVisu(nVars,:,:,:,iElem) = dtElem(iElem)
+  end do
 #endif
 CALL VisualizeAny(OutputTime,nOutvars,Nvisu,.FALSE.,Coords_Nvisu,U_Nvisu,FileTypeStr,strvarnames_tmp)
 DEALLOCATE(U_NVisu)

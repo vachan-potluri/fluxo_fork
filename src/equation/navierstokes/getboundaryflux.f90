@@ -398,70 +398,29 @@ DO iBC=1,nBCs
       END DO ! ivar
 #endif /*PARABOLIC*/
     END DO !iSide=1,nBCLoc
-  CASE(4) ! Isothermal Wall, Euler = Slip Wall (see CASE(9)), Diffusion: density=inside, velocity=0, rhoE=c_v * rho_L *T_wall
+  CASE(4) ! Isothermal Wall
     DO iSide=1,nBCLoc
       SideID=BCSideID(iBC,iSide)
       DO q=0,PP_N
         DO p=0,PP_N
-          !! Advection
-          ! Compute the Euler state: tangential component of v=0, density from inside and pressure with a 1D riemann problem
-          U_loc(1) = U_Master(1,p,q,SideID)
-          U_loc(5) = U_Master(5,p,q,SideID)
-          ! local normal system
-          N_loc(:,1) = NormVec( :,p,q,SideID)
-          N_loc(:,2) = TangVec1(:,p,q,SideID)
-          N_loc(:,3) = TangVec2(:,p,q,SideID)
-          ! rotate momentum in normal direction
-          U_loc(2)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,1))
-          U_loc(3)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,2))
-          U_loc(4)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,3))
-          ! Compute the primitives 
-          CALL ConsToPrim_aux(Prim,U_loc)
-          ! Compute the 1D wall Riemann problem pressure solution
-          IF (Prim(2) .LE. 0.) THEN
-            Prim(5)=Prim(5)*max((1.+0.5*KappaM1*Prim(2)/Prim(6)),0.0001)**(2.*Kappa*sKappaM1)
-          ELSE
-            ar=2.*sKappaP1/Prim(1)
-            br=KappaM1*sKappaP1*Prim(5)
-            Prim(5)=Prim(5)+Prim(2)/ar*0.5*(Prim(2)+sqrt(Prim(2)*Prim(2)+4.*ar*(Prim(5)+br)))
-          END IF
-          ! Now we compute the 1D Euler flux, but use the info that the normal component u=0
-          ! we directly tranform the flux back into the Cartesian coords: F=(0,n1*p,n2*p,n3*p,0)^T
-          Flux(  1,p,q,SideID) = 0.
-          Flux(2:4,p,q,SideID) = Prim(5)*N_loc(:,1)
-          Flux(  5,p,q,SideID) = 0.
-    
-          !! Diffusion
-          ! For isothermal wall, all gradients are from interior
-          ! We reconstruct the BC State, rho=rho_L, velocity=0, rhoE_wall =  rho_L*C_v*Twall
-          !U_Face_loc(1,p,q)   = U_Face(1,p,q) !old version, problem since density gradient already from inside
-          U_Face_loc(1,p,q)   = prim(5)/RefStatePrim(BCState,5)*RefStatePrim(BCState,1) !p=(R*Twall) !pressure from outside 
-          U_Face_loc(2:4,p,q) = 0.
-          !U_Face_loc(5,p,q)   = U_Face_loc(1,p,q)*R*sKappaM1*Twall !old version, problem since density gradient already from insid
-          U_Face_loc(5,p,q)   = prim(5)*sKappaM1 !pressure from outside 
+          ! set the ghost state: reverse normal velocity and everything else same
+          U_Face_loc(1,p,q) = U_Master(1,p,q,SideID)
+          U_Face_loc(5,p,q) = U_Master(5,p,q,SideID)
+          U_Face_loc(2:4,p,q) = U_Master(2:4,p,q,SideID) - &
+            2*dot_product(U_Master(2:4,p,q,SideID),NormVec(:,p,q,SideID))*NormVec(:,p,q,SideID)
         END DO ! p
       END DO ! q
+      CALL Riemann(Flux(:,:,:,SideID),U_Master(:,:,:,SideID),U_Face_loc, &
 #if PARABOLIC
-      ! Evaluate 3D Diffusion Flux with interior state and symmetry gradients
-      CALL EvalDiffFlux3D(Fd_Face_loc,Gd_Face_loc,Hd_Face_loc,U_Face_loc(:,:,:), &
-                          gradPx_Master(:,:,:,SideID),                           &
-                          gradPy_Master(:,:,:,SideID),                           &
-                          gradPz_Master(:,:,:,SideID))                           
-      ! Sum up Euler and Diffusion Flux
-      DO iVar=2,PP_nVar
-#if FLUXO_HYPERSONIC
-        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID) + (1-alpha_vis(SideToElem(S2E_ELEM_ID,SideID)))*( & 
-                                NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
-                                NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
-                                NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:))
-#else
-        Flux(iVar,:,:,SideID) = Flux(iVar,:,:,SideID)               + & 
-                                NormVec(1,:,:,SideID)*Fd_Face_loc(iVar,:,:) + &
-                                NormVec(2,:,:,SideID)*Gd_Face_loc(iVar,:,:) + &
-                                NormVec(3,:,:,SideID)*Hd_Face_loc(iVar,:,:)
-#endif
-      END DO ! ivar
+                   gradPx_Master(:,:,:,SideID),gradPx_Master(:,:,:,SideID), &
+                   gradPy_Master(:,:,:,SideID),gradPy_Master(:,:,:,SideID), &
+                   gradPz_Master(:,:,:,SideID),gradPz_Master(:,:,:,SideID), &
 #endif /*PARABOLIC*/
+                   NormVec(:,:,:,SideID),TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID) &
+#if FLUXO_HYPERSONIC
+                   , alpha_vis(SideToElem(S2E_ELEM_ID,SideID)) &
+#endif
+                   )
     END DO !iSide=1,nBCLoc
   
   CASE(9) ! Euler Wall, slip wall, symmetry BC, v=0 strategy a la HALO (is very perfect)
@@ -744,40 +703,16 @@ DO iBC=1,nBCs
       END DO ! q
     END DO !iSide=1,nBCloc
   
-  CASE(4) ! Isothermal Wall, Density from interior, velocity=0, energy = c_v * R* sKappaM1 * T_wall
+  CASE(4) ! Isothermal Wall
     DO iSide=1,nBCLoc
       SideID=BCSideID(iBC,iSide)
       DO q=0,PP_N
         DO p=0,PP_N
-          u_loc(1) = U_Master(1,p,q,SideID)
-          u_loc(5) = U_Master(5,p,q,SideID)
-          ! local normal system
-          N_loc(:,1) = NormVec( :,p,q,SideID)
-          N_loc(:,2) = TangVec1(:,p,q,SideID)
-          N_loc(:,3) = TangVec2(:,p,q,SideID)
-          ! rotate momentum in normal direction
-          U_loc(2)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,1))
-          U_loc(3)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,2))
-          U_loc(4)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,3))
-          ! Compute the primitives
-          CALL ConsToPrim_aux(Prim,u_loc)
-          ! Compute the 1D wall Riemann problem pressure solution
-          IF (Prim(2) .LE. 0.) THEN
-            Prim(5)=Prim(5)*max((1.+0.5*KappaM1*Prim(2)/Prim(6)),0.0001)**(2.*Kappa*sKappaM1)
-          ELSE
-            ar=2.*sKappaP1/Prim(1)
-            br=KappaM1*sKappaP1*Prim(5)
-            Prim(5)=Prim(5)+Prim(2)/ar*0.5*(Prim(2)+sqrt(Prim(2)*Prim(2)+4.*ar*(Prim(5)+br)))
-          END IF
-          !  Get Wall Temperature:  Twall = RefState(BCState,5)/(R*RefState(BCState,1))
-          ! Use Density from interior
-          !F_Face(1,p,q)=U_Face(1,p,q) ! OLD version, problem, since density gradient already from inside
-          Flux(1,p,q,SideID)=prim(5)/RefStatePrim(BCState,5)*RefStatePrim(BCState,1)!pressure from outside: rho=p/(Twall*R/rho_wall
-          ! Velocity is zero, but is forced via the Riemann flux of the lifting Operator (u_riemann = 0.5(u_l + u_r)
-          Flux(2:4,p,q,SideID) = 0.
-          ! Energy is computed with density from inside and Twall and zero(!) velocity: rhoE_wall
-          !F_Face(5,p,q) = U_Face(1,p,q)*R*sKappaM1*Twall! OLD version, problem, since density gradient already from inside 
-          Flux(5,p,q,SideID) = prim(5)*sKappaM1  !pressure from outside
+          ! pressure from inside, temperature from refstate, velocity 0
+          Flux(2:4,p,q,SideID) = 0
+          CALL ConsToPrim(Prim, U_Master(:,p,q,SideID))
+          Flux(1,p,q,SideID) = Prim(5)/RefStatePrim(BCState,5)*RefStatePrim(BCState,1)
+          Flux(5,p,q,SideID) = Prim(5)*sKappaM1
         END DO ! p
       END DO ! q
     END DO !iSide=1,nBCloc

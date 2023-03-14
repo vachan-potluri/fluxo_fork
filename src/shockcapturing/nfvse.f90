@@ -1608,7 +1608,6 @@ contains
     use MOD_Mesh_Vars          , only: Elem_centers, Elem_at_wall
     use MOD_NFVSE_Vars         , only: alpha_vis, wall_blender_limit_parser, viscous_blending_region_parser
     use iso_fortran_env        , only: output_unit
-    use MOD_NFVSE_MPI          , only: UpdateVisBlendingCoefficient
 #endif
     use MOD_ShockCapturing_Vars, only: Shock_Indicator
     ! For reconstruction on boundaries

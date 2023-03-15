@@ -403,11 +403,10 @@ DO iBC=1,nBCs
       SideID=BCSideID(iBC,iSide)
       DO q=0,PP_N
         DO p=0,PP_N
-          ! set the ghost state: reverse normal velocity and everything else same
+          ! set the ghost state: reverse velocity and everything else same
           U_Face_loc(1,p,q) = U_Master(1,p,q,SideID)
           U_Face_loc(5,p,q) = U_Master(5,p,q,SideID)
-          U_Face_loc(2:4,p,q) = U_Master(2:4,p,q,SideID) - &
-            2*dot_product(U_Master(2:4,p,q,SideID),NormVec(:,p,q,SideID))*NormVec(:,p,q,SideID)
+          U_Face_loc(2:4,p,q) = -U_Master(2:4,p,q,SideID)
         END DO ! p
       END DO ! q
       CALL Riemann(Flux(:,:,:,SideID),U_Master(:,:,:,SideID),U_Face_loc, &

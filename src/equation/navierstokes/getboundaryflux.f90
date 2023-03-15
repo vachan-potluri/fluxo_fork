@@ -594,7 +594,7 @@ USE MOD_Mesh_Vars    ,ONLY: nBCSides,nBCs,BoundaryType
 USE MOD_Mesh_Vars    ,ONLY: NormVec,TangVec1,TangVec2,SurfElem,Face_xGP
 USE MOD_DG_Vars      ,ONLY: U_Master
 USE MOD_Equation     ,ONLY: ExactFunc
-USE MOD_Equation_Vars,ONLY: ConsToPrim_aux,ConsToPrim,PrimToCons
+USE MOD_Equation_Vars,ONLY: ConsToPrim_aux,ConsToPrim,PrimToCons,ConsToEntropy
 USE MOD_Equation_Vars,ONLY: Kappa,KappaM1,sKappaM1,sKappaP1,RefStatePrim,RefStateCons
 USE MOD_Equation_Vars,ONLY: IniExactFunc
 USE MOD_Equation_Vars,ONLY: nBCByType,BCSideID,BCData
@@ -614,6 +614,7 @@ REAL                                 :: ar,br,N_loc(1:3,1:3),Prim(8)
 REAL                                 :: U_loc(PP_nVar)
 REAL                                 :: U_Face_loc(PP_nVar,0:PP_N,0:PP_N)
 REAL                                 :: pres, a, normalMachNo
+REAL                                 :: F(PP_nVar), F_m(PP_nVar)
 !==================================================================================================================================
 DO iBC=1,nBCs
   IF(nBCByType(iBC).LE.0) CYCLE
@@ -793,7 +794,21 @@ END DO ! iBC
 !for BR1 and BR2, lifting is in strong form, flux=U-Uminus...
 DO SideID=1,nBCSides
   DO q=0,PP_N; DO p=0,PP_N
-    Flux(:,p,q,SideID)=(Flux(:,p,q,SideID)-U_Master(:,p,q,SideID))*SurfElem(p,q,SideID)
+    ! convert the conservative variables to primitive/entropy variables based on PP_Lifting_Var
+#if (PP_Lifting_Var==1)
+    ! conservative variable lifting: do nothing
+    F = Flux(:,p,q,SideID)
+    F_m = U_Master(:,p,q,SideID)
+#elif (PP_Lifting_Var==2)
+    ! primitive variable lifting
+    ConsToPrim(F, Flux(:,p,q,SideID))
+    ConsToPrim(F_m, U_Master(:,p,q,SideID))
+#elif (PP_Lifting_Var==3)
+    ! entropy variable lifting
+    F = ConsToEntropy(Flux(:,p,q,SideID))
+    F_m = ConsToEntropy(U_Master(:,p,q,SideID))
+#endif /*PP_Lifting_Var*/
+    Flux(:,p,q,SideID)=(F-F_m)*SurfElem(p,q,SideID)
   END DO; END DO
 END DO ! iSide
 END SUBROUTINE Lifting_GetBoundaryFlux

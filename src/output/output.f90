@@ -455,6 +455,7 @@ END DO !iElem
   DO iElem=1,nElems
     CALL ChangeBasis3D(9,PP_N,NVisu,Vdm_GaussN_NVisu,viscous_quantities_elem(:,:,:,:,iElem),U_NVisu(nVars+1:nVars+9,:,:,:,iElem))
   END DO
+  nVars = nVars+9
 #endif
 #if FLUXO_LOCAL_STEPPING
   nVars = nVars + 1

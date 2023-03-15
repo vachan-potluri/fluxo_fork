@@ -197,7 +197,7 @@ SUBROUTINE GetBoundaryFlux(tIn,Flux)
 ! MODULES
 USE MOD_PreProc
 USE MOD_Globals      ,ONLY: Abort
-USE MOD_Riemann      ,ONLY: Riemann
+USE MOD_Riemann      ,ONLY: Riemann,AdvRiemann
 USE MOD_DG_Vars      ,ONLY: U_Master
 USE MOD_Mesh_Vars    ,ONLY: nSides,nBCSides,nBCs,BoundaryType
 USE MOD_Mesh_Vars    ,ONLY: NormVec,TangVec1,TangVec2,SurfElem,Face_xGP
@@ -331,53 +331,37 @@ DO iBC=1,nBCs
 #endif
                    )
     END DO !iSide=1,nBCloc
-  CASE(3) ! Adiabatic Wall, Euler = Slip Wall (see CASE(9)), Diffusion: density,pressure=inside values, velocity=0
+  CASE(3) ! Adiabatic Wall
     DO iSide=1,nBCLoc
       SideID=BCSideID(iBC,iSide)
       DO q=0,PP_N
         DO p=0,PP_N
-          !! Advection
-          ! Compute the Euler state: tangential component of v=0, density from inside and pressure with a 1D riemann problem
-          U_loc(1) = U_Master(1,p,q,SideID)
-          U_loc(5) = U_Master(5,p,q,SideID)
-          ! local normal system
-          N_loc(:,1) = NormVec( :,p,q,SideID)
-          N_loc(:,2) = TangVec1(:,p,q,SideID)
-          N_loc(:,3) = TangVec2(:,p,q,SideID)
-          ! rotate momentum in normal direction
-          U_loc(2)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,1))
-          U_loc(3)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,2))
-          U_loc(4)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,3))
-          ! Compute the primitives 
-          CALL ConsToPrim_aux(Prim,U_loc)
-          ! Compute the 1D wall Riemann problem pressure solution
-          IF (Prim(2) .LE. 0.) THEN
-            Prim(5)=Prim(5)*max((1.+0.5*KappaM1*Prim(2)/Prim(6)),0.0001)**(2.*Kappa*sKappaM1)
-          ELSE
-            ar=2.*sKappaP1/Prim(1)
-            br=KappaM1*sKappaP1*Prim(5)
-            Prim(5)=Prim(5)+Prim(2)/ar*0.5*(Prim(2)+sqrt(Prim(2)*Prim(2)+4.*ar*(Prim(5)+br)))
-          END IF
-          ! Now we compute the 1D Euler flux, but use the info that the normal component u=0
-          ! we directly tranform the flux back into the Cartesian coords: F=(0,n1*p,n2*p,n3*p,0)^T
-          Flux(  1,p,q,SideID) = 0.
-          Flux(2:4,p,q,SideID) = Prim(5)*N_loc(:,1)
-          Flux(  5,p,q,SideID) = 0.
-    
-          !! Diffusion
-          U_Face_loc(1,p,q)   = prim(1)
-          U_Face_loc(2:4,p,q) = 0.
-          U_Face_loc(5,p,q)   = prim(5)*sKappaM1 !pressure from outside 
+          ! ghost boundary state: reverse velocity, everything else same
+          U_Face_loc(1,p,q) = U_Master(1,p,q,SideID)
+          U_Face_loc(5,p,q) = U_Master(5,p,q,SideID)
+          U_Face_loc(2:4,p,q) = -U_Master(2:4,p,q,SideID)
+          CALL ConsToPrim_aux(Prim, U_Master(:,p,q,SideID))
+          ! all gradients except temperature equal
+          gradPx_Face_loc(2:5,p,q) = gradPx_Master(2:5,p,q,SideID)
+          gradPx_Face_loc(1,p,q) = gradPx_Face_loc(5,p,q)/prim(7)*sKappaM1 ! (grad rho) = (grad p)/RT
+          gradPy_Face_loc(2:5,p,q) = gradPy_Master(2:5,p,q,SideID)
+          gradPy_Face_loc(1,p,q) = gradPy_Face_loc(5,p,q)/prim(7)*sKappaM1
+          gradPz_Face_loc(2:5,p,q) = gradPz_Master(2:5,p,q,SideID)
+          gradPz_Face_loc(1,p,q) = gradPz_Face_loc(5,p,q)/prim(7)*sKappaM1
         END DO ! p
       END DO ! q
+      CALL AdvRiemann(Flux(:,:,:,SideId),U_Master(:,:,:,SideId),U_Face_loc,NormVec(:,:,:,SideID), &
+        TangVec1(:,:,:,SideID),TangVec2(:,:,:,SideID))
 #if PARABOLIC
-      ! Evaluate 3D Diffusion Flux with interior state and zero temperature gradient
-      gradPx_Face_loc(2:5,:,:) = gradPx_Master(2:5,:,:,SideID)
-      gradPx_Face_loc(1,:,:) = gradPx_Face_loc(5,:,:)/prim(7)*sKappaM1 ! (grad rho) = (grad p)/RT
-      gradPy_Face_loc(2:5,:,:) = gradPy_Master(2:5,:,:,SideID)
-      gradPy_Face_loc(1,:,:) = gradPy_Face_loc(5,:,:)/prim(7)*sKappaM1
-      gradPz_Face_loc(2:5,:,:) = gradPz_Master(2:5,:,:,SideID)
-      gradPz_Face_loc(1,:,:) = gradPz_Face_loc(5,:,:)/prim(7)*sKappaM1
+      ! reset U_Face_loc to now have zero velocity (earlier it was ghost state)
+      DO q=0,PP_N
+        DO p=0,PP_N
+          CALL ConsToPrim(Prim, U_Master(:,p,q,SideID))
+          U_Face_loc(1,p,q) = U_Master(1,p,q,SideID)
+          U_Face_loc(5,p,q) = Prim(5)*skappaM1
+          U_Face_loc(2:4,p,q) = 0.0
+        END DO
+      END DO
       CALL EvalDiffFlux3D(Fd_Face_loc,Gd_Face_loc,Hd_Face_loc,U_Face_loc(:,:,:), &
                           gradPx_Face_loc,                                       &
                           gradPy_Face_loc,                                       &
@@ -674,31 +658,11 @@ DO iBC=1,nBCs
       SideID=BCSideID(iBC,iSide)
       DO q=0,PP_N
         DO p=0,PP_N
-          u_loc(1) = U_Master(1,p,q,SideID)
-          u_loc(5) = U_Master(5,p,q,SideID)
-          ! local normal system
-          N_loc(:,1) = NormVec( :,p,q,SideID)
-          N_loc(:,2) = TangVec1(:,p,q,SideID)
-          N_loc(:,3) = TangVec2(:,p,q,SideID)
-          ! rotate momentum in normal direction
-          U_loc(2)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,1))
-          U_loc(3)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,2))
-          U_loc(4)   = SUM(U_Master(2:4,p,q,SideID)*N_loc(:,3))
-          ! Compute the primitives
-          CALL ConsToPrim_aux(Prim,u_loc)
-          ! Compute the 1D wall Riemann problem pressure solution
-          IF (Prim(2) .LE. 0.) THEN
-            Prim(5)=Prim(5)*max((1.+0.5*KappaM1*Prim(2)/Prim(6)),0.0001)**(2.*Kappa*sKappaM1)
-          ELSE
-            ar=2.*sKappaP1/Prim(1)
-            br=KappaM1*sKappaP1*Prim(5)
-            Prim(5)=Prim(5)+Prim(2)/ar*0.5*(Prim(2)+sqrt(Prim(2)*Prim(2)+4.*ar*(Prim(5)+br)))
-          END IF
-          
-          Flux(1,p,q,SideID)=prim(1)
-          ! Velocity is zero, but is forced via the Riemann flux of the lifting Operator (u_riemann = 0.5(u_l + u_r)
-          Flux(2:4,p,q,SideID) = 0.
-          Flux(5,p,q,SideID) = prim(5)*sKappaM1  !pressure from outside
+          ! pressure and density from inside, velocity 0
+          Flux(2:4,p,q,SideID) = 0
+          CALL ConsToPrim(Prim, U_Master(:,p,q,SideID))
+          Flux(1,p,q,SideID) = Prim(1)
+          Flux(5,p,q,SideID) = Prim(5)*sKappaM1
         END DO ! p
       END DO ! q
     END DO !iSide=1,nBCloc

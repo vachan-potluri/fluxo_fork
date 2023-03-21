@@ -976,6 +976,21 @@ CASE(201) ! blast with spherical inner state and rest outer state. eps~IniAmplit
   a=a/(a+1.)
   Prim = (1.-a)*RefStatePrim(1,:)+a*RefStatePrim(2,:)
   CALL PrimToCons(Prim,Resu)
+CASE(16) ! Woodward & Colella (1984) blast wave
+  if(present(xElem_center)) then
+    xs = xElem_center(1) ! temporarily using xs, this is NOT the shock position
+  else
+    xs = x(1)
+  end if
+  Prim = (/1,0,0,0,1/)
+  if (xs <= 0.1) then
+    Prim(5) = 1000 ! left state
+  elseif (xs <= 0.9) then
+    Prim(5) = 0.01 ! middle state
+  else
+    Prim(5) = 100 ! right state
+  end if
+  CALL PrimToCons(Prim,Resu)
 
 END SELECT ! ExactFunction
 

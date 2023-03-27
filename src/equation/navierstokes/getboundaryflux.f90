@@ -341,6 +341,7 @@ DO iBC=1,nBCs
           U_Face_loc(5,p,q) = U_Master(5,p,q,SideID)
           U_Face_loc(2:4,p,q) = -U_Master(2:4,p,q,SideID)
           CALL ConsToPrim_aux(Prim, U_Master(:,p,q,SideID))
+#if PARABOLIC
           ! all gradients except temperature equal
           gradPx_Face_loc(2:5,p,q) = gradPx_Master(2:5,p,q,SideID)
           gradPx_Face_loc(1,p,q) = gradPx_Face_loc(5,p,q)/prim(7)*sKappaM1 ! (grad rho) = (grad p)/RT
@@ -348,6 +349,7 @@ DO iBC=1,nBCs
           gradPy_Face_loc(1,p,q) = gradPy_Face_loc(5,p,q)/prim(7)*sKappaM1
           gradPz_Face_loc(2:5,p,q) = gradPz_Master(2:5,p,q,SideID)
           gradPz_Face_loc(1,p,q) = gradPz_Face_loc(5,p,q)/prim(7)*sKappaM1
+#endif
         END DO ! p
       END DO ! q
       CALL AdvRiemann(Flux(:,:,:,SideId),U_Master(:,:,:,SideId),U_Face_loc,NormVec(:,:,:,SideID), &

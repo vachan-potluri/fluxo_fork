@@ -100,10 +100,10 @@ IF (ShockCapturingInitIsDone.OR.(.NOT.InterpolationInitIsDone)) THEN
   SWRITE(*,*) "InitShockCapturing not ready to be called or already called."
   RETURN
 END IF
-IF (PP_N.LT.2) THEN
-  CALL abort(__STAMP__,'Polynomial Degree too small for Shock Capturing!',999,999.)
-  RETURN
-END IF
+! IF (PP_N.LT.2) THEN
+!   CALL abort(__STAMP__,'Polynomial Degree too small for Shock Capturing!',999,999.)
+!   RETURN
+! END IF
 
 SWRITE(UNIT_StdOut,'(132("-"))')
 SWRITE(UNIT_stdOut,'(A)') ' INIT SHOCKCAPTURING...'

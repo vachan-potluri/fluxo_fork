@@ -63,10 +63,10 @@ contains
       SWRITE(*,*) "InitIndicator not ready to be called or already called."
       RETURN
     END IF
-    IF (PP_N.LT.2) THEN
-      CALL abort(__STAMP__,'Polynomial Degree too small for Indicator!',999,999.)
-      RETURN
-    END IF
+    ! IF (PP_N.LT.2) THEN
+    !   CALL abort(__STAMP__,'Polynomial Degree too small for Indicator!',999,999.)
+    !   RETURN
+    ! END IF
     
     ! Compute Vandermonde matrix to change basis
     CALL InitBasisTrans(PP_N,xGP)
